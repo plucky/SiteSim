@@ -1,0 +1,12 @@
+// simple in and outflow of two atom types
+
+%sig: A(), P()
+
+%par: Volume = fibro              // system volume
+
+%par: inflow = 1.e-11     A	      // M s^-1
+%par: outflow = 1.e-4     A       // s^-1   [in * 1/steady-state (in M) ]
+
+%par: Resize = 1.                // "rescale" the system volume
+
+%par: seed = 42

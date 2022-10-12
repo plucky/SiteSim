@@ -1,0 +1,38 @@
+
+%sig: A(p[a1.P$m a2.P$m a3.P$m], l[r.A$w], r[l.A]), P(a1[p.A], a2[p.A], a3[p.A], d[d.P$m])
+
+// %sig: A@100(p[a1.P$1000.e-9 a2.P$m a3.P$m], l[r.A$w], r[l.A]), P(a1[p.A], a2[p.A], a3[p.A], d[d.P$m])
+
+%par: Volume = fibro              // system volume
+
+// {weak, medium, strong} refers to binding strength
+
+// calibrate your mind:
+//
+// at 100nM of A and 100nM B:
+// weak -> fraction of AB dimers: ~8 %
+// medium -> fraction of AB dimers: ~38 %
+// strong -> fraction of AB dimers: ~72 %
+//
+// (at 10^11 affinity [ring closure], the fraction of dimers is 99%
+//
+// at 10nM of A and 10nM B:
+// weak -> fraction of AB dimers: ~1 %
+// medium -> fraction of AB dimers: ~8 %
+// strong -> fraction of AB dimers: ~38 %
+
+// all rate constants are 'deterministic' (conversion is done by SiteSim)
+
+%par: Kd_weak   = 1000.e-9        //   1 μmol
+%par: Kd_medium =  100.e-9        // 100 nmol
+%par: Kd_strong =   10.e-9        //  10 nmol
+
+%par: k_on = 1.e+9                // (M s)^-1; diffusion-controlled limit...
+
+// %par: inflow = 1.e-11     A	      // M s^-1
+// %par: outflow = 1.e-4     A       // s^-1   [in * 1/steady-state (in M) ]
+
+%par: Resize = 1                  // "rescale" the system volume (and everything that depends on it)
+%par: RingClosureFactor = 1.e+5   // ratio of binary Kd to unary Kd
+
+//%par: seed = 1234

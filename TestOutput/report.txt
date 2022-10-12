@@ -1,0 +1,87 @@
+
+
+           date and time (UTC): 2022-10-12 01:52:24
+                          uuid: 84dd37a8-49d0-11ed-8042-784f4384713d
+
+
+COMMAND LINE ---------------------------------------------------------
+
+None
+
+SIGNATURE ------------------------------------------------------------
+
+signature string
+A@80(x[x.P$10]), P@80(x[x.A])
+
+                                 agent A
+                                       x:  bonds -> ['x.P']
+                                 agent P
+                                       x:  bonds -> ['x.A']
+
+                                2 agents: A [80], P [80]
+                                 2 sites: ['A.x', 'P.x']
+                            1 bond types
+                                 A.x-x.P: 10
+
+
+PARAMETERS -----------------------------------------------------------
+
+                                Avogadro: 6.02214E+23
+                                 Kd weak: 1e-06
+                               Kd medium: 1e-07
+                               Kd strong: 1e-08
+                                    k_on: 1.000E+09
+
+                                  Resize: 1.0
+                        Volume (resized): 2.250E-12
+             RingClosureFactor (resized): 1.000E+05
+
+          inter-molecular on-rate (s_on): 7.38017E-04
+     intra-molecular on-rate (s_ring_on): 7.38017E+01
+                     off-rate (A.x--P.x): 1.00000E+01
+
+                                defaults
+                              s_off_weak: 1.00000E+03
+                            s_off_medium: 1.00000E+02
+                            s_off_strong: 1.00000E+01
+
+                        initial agents A: 108398 (80 nM)
+                        initial agents P: 108398 (80 nM)
+
+                      random number seed: 42
+
+SIMULATOR STATE ------------------------------------------------------
+
+             simulator status at time t= 0.0
+
+                   total system activity: 8.67180E+06
+
+                                   heaps: 4 x [height: 2 nodes: 7 occ: 0.50]
+HEAP bt+ | ('A.x', 'P.x') -> root value: 0.00E+00
+HEAP bt- | ('A.x', 'P.x') -> root value: 0.00E+00
+HEAP st | A.x -> root value: 1.08E+05
+HEAP st | P.x -> root value: 1.08E+05
+
+MIXTURE --------------------------------------------------------------
+
+initial mixture file: None
+   molecular species: 2
+   agents, molecules: ({'A': 108398, 'P': 108398}, 216796)
+   size distribution:
+(1, 216796) ... (1, 216796)
+                      system activities 
+                   total system activity: 8.67180E+06
+           unimolecular binding activity: 0.00000E+00
+              bond dissociation activity: 0.00000E+00
+            bimolecular binding activity: 8.67180E+06
+
+         system activities by bond type 
+          unimolecular binding activity 
+                          ('A.x', 'P.x'): 0.00000E+00
+             bond dissociation activity 
+                          ('A.x', 'P.x'): 0.00000E+00
+           bimolecular binding activity 
+                          ('A.x', 'P.x'): 8.67180E+06
+                        inflow activity 
+                       outflow activity 
+
