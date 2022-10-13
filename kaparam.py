@@ -33,7 +33,7 @@ class Parameters:
 
         # self.Avogadro = constants.Avogadro  # temporarily avoid scipy for Pythonista's sake...
         self.Avogadro = 6.02214e+23
-        self.Volume_choices = {'fibro': 2.25e-12}
+        self.Volume_choices = {'fibro': 2.25e-12, 'yeast': 4.2e-14}
         self.init_default = 100   # default initial agent concentration in nM
 
         # default parameters------------------------------------------------------
@@ -148,7 +148,7 @@ class Parameters:
             if init == '*':  # default abundance 100 nM
                 self.init_agents[a] = int(self.init_default * 1.e-9 * self.Avogadro * self.Volume)
             else:
-                self.init_agents[a] = int(int(init) * 1.e-9 * self.Avogadro * self.Volume)
+                self.init_agents[a] = int(float(init) * 1.e-9 * self.Avogadro * self.Volume)
 
     def set_parameters(self, pdict):  # needs updating; currently not used
         """

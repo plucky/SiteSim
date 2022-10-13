@@ -3,12 +3,136 @@
 This module defines debugging routines.
 """
 
-import kasim
 import kaheap
 import kasystem as ka
 import kainit
 
-import sys
+
+def select_reaction_basic(self):
+    """
+    Obsolete. Supplanted by the version with heaps. Kept for testing.
+    """
+    # The first few choices relate to in/outflow of atoms.
+    # Since there are only a few types, looping is OK.
+    rv = ka.system.sim.rng.uniform(low=0.0, high=ka.system.mixture.total_activity)
+    if rv < ka.system.mixture.total_inflow:
+        select = 'inflow'
+        for a in ka.system.mixture.activity_inflow:
+            if rv < ka.system.mixture.activity_inflow[a]:
+                self.current_reaction = select, (a, None), (None, None), (None, None)
+                return
+            else:
+                rv -= ka.system.mixture.activity_inflow[a]
+
+    rv -= ka.system.mixture.total_inflow
+    if rv < ka.system.mixture.total_outflow:
+        select = 'outflow'
+        for a in ka.system.mixture.activity_outflow:
+            if rv < ka.system.mixture.activity_outflow[a]:
+                self.current_reaction =  select, (a, None), (None, None), (None, None)
+                return
+            else:
+                rv -= ka.system.mixture.activity_outflow[a]
+
+    rv -= ka.system.mixture.total_outflow
+    if rv < ka.system.mixture.unimolecular_binding_activity:
+        # channel is a unimolecular binding event
+        select = 'ub'
+        for bt in ka.system.signature.bond_types:
+            if rv < ka.system.mixture.activity_unimolecular_binding[bt]:
+                # the internal bond to be formed is of type bt
+                # refine search to the molecular level
+                for m in ka.system.mixture.complexes:
+                    segment = m.binding[bt] * m.count
+                    if rv < segment:
+                        # the event is within molecular species m;
+                        # now we uniformly choose the instance of bt in m
+                        # bt is (agent_type1.site1), (agent_type2.site2)
+                        # NOTE: I don't think we need to randomize which site we choose first.
+                        s1, s2 = bt
+                        r1 = ka.system.sim.rng.integers(low=0, high=m.free_site[s1])
+                        # this is our choice of site1; it belongs to agent name1 in molecule m
+                        name1, site1 = m.free_site_list[s1][r1]
+                        if s1 == s2:
+                            temp_list = [p for p in m.free_site_list[s2] if p != (name1, site1)]
+                            r2 = ka.system.sim.rng.integers(low=0, high=m.free_site[s2] - 1)
+                            name2, site2 = temp_list[r2]
+                        else:
+                            # exclude possibility of self-binding
+                            site2 = s2.split('.')[1]
+                            if (name1, site2) in m.free_site_list[s2]:
+                                temp_list = [p for p in m.free_site_list[s2] if p != (name1, site2)]
+                                r2 = ka.system.sim.rng.integers(low=0, high=m.free_site[s2] - 1)
+                                name2, site2 = temp_list[r2]
+                                self.current_reaction =  select, (m, None), (name1, site1), (name2, site2)
+                                return
+                            else:
+                                r2 = ka.system.sim.rng.integers(low=0, high=m.free_site[s2])
+                                name2, site2 = m.free_site_list[s2][r2]
+                        self.current_reaction =  select, (m, None), (name1, site1), (name2, site2)
+                        return
+                    else:
+                        rv -= segment
+            else:
+                rv -= ka.system.mixture.activity_unimolecular_binding[bt]
+
+    # Note to self: navigation across intervals may need to be changed to accommodate size-dependent alpha
+    rv -= ka.system.mixture.unimolecular_binding_activity
+    if rv < ka.system.mixture.bond_dissociation_activity:
+        # channel is a bond dissociation
+        select = 'bd'
+        for bt in ka.system.signature.bond_types:
+            if rv < ka.system.mixture.activity_bond_dissociation[bt]:
+                # refine search to molecular level
+                for m in ka.system.mixture.complexes:
+                    segment = m.unbinding[bt] * m.count
+                    if rv < segment:
+                        # it's molecule of species m; now we need to uniformly choose the instance of bt in m
+                        # bt is (agent_type_1.site_1), (agent_type_2.site_2)
+                        # choose a bond of this type
+                        r = ka.system.sim.rng.integers(low=0, high=m.bond_type[bt])
+                        x, y = m.bond_type_list[bt][r]
+                        self.current_reaction =  select, (m, None), x, y
+                        return
+                    else:
+                        rv -= segment
+            else:
+                rv -= ka.system.mixture.activity_bond_dissociation[bt]
+
+    rv -= ka.system.mixture.bond_dissociation_activity
+    if rv < ka.system.mixture.bimolecular_binding_activity:
+        # channel is a bimolecular binding
+        select = 'bb'
+        for bt in ka.system.signature.bond_types:
+            if rv < ka.system.mixture.activity_bimolecular_binding[bt]:
+                s1, s2 = bt
+                # choose at random (uniformly) an s1, i.e. an agent and free site of required type
+                r1 = ka.system.sim.rng.integers(low=0, high=ka.system.mixture.total_free_sites[s1])
+                for m1 in ka.system.mixture.complexes:
+                    segment = m1.free_site[s1] * m1.count
+                    if r1 < segment:
+                        # it's m1
+                        break
+                    else:
+                        r1 -= segment
+                r2 = ka.system.sim.rng.integers(low=0, high=ka.system.mixture.total_free_sites[s2] - m1.free_site[s2])
+                m1.count -= 1  # only temporary!
+                for m2 in ka.system.mixture.complexes:
+                    segment = m2.free_site[s2] * m2.count
+                    if r2 < segment:
+                        # it's m2
+                        break
+                    else:
+                        r2 -= segment
+                m1.count += 1  # undo
+                r1 = ka.system.sim.rng.integers(low=0, high=m1.free_site[s1])
+                r2 = ka.system.sim.rng.integers(low=0, high=m2.free_site[s2])
+                name1, site1 = m1.free_site_list[s1][r1]
+                name2, site2 = m2.free_site_list[s2][r2]
+                self.current_reaction =  select, (m1, m2), (name1, site1), (name2, site2)
+                return
+            else:
+                rv -= ka.system.mixture.activity_bimolecular_binding[bt]
 
 
 def test_heap():

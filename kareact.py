@@ -132,8 +132,7 @@ def dissociate_bond(A, port1, port2):
                 if st2 == site2_type and s1 in A.agents[b_agent]['iface']:
                     if A.agents[b_agent]['iface'][s1]['bond'] == '.':
                         A.agent_self_binding[bt] += 1
-
-        A.label_counter = int(kamol.get_identifier(list(A.agents)[-1], delimiters=A.id_sep)[1])
+        A.label_counter = int(kamol.get_identifier(next(reversed(A.agents)), delimiters=A.id_sep)[1])
         # size
         A.size = len(A.agents)
         # get the composition
@@ -247,7 +246,7 @@ def bind_molecules(A, B, A_port, B_port):
                 if A.agents[b_agent]['iface'][s1]['bond'] == '.':
                     A.agent_self_binding[bt] -= 1
 
-    A.label_counter = int(kamol.get_identifier(list(A.agents)[-1], delimiters=A.id_sep)[1])
+    A.label_counter = int(kamol.get_identifier(next(reversed(A.agents)), delimiters=A.id_sep)[1])
     # size
     A.size = len(A.agents)
     # get the composition
@@ -284,7 +283,9 @@ def bond_dissociation(reaction):
     # dissociation of the bond between (agent1, site1), (agent2, site2) in molecule
     # "molecule" refers to a species, not to an instance
 
-    if molecule.count > 1:
+    # keep in mind that we decreased the counts in the preceding negative update;
+    # hence we correct counts by -1
+    if molecule.count > 0:
         # we need to act on an instance, so let's make a copy
         A = kamol.copy_molecule(molecule, id_shift=0, system=ka.system)
     else:
@@ -309,7 +310,9 @@ def bimolecular_binding(reaction):
     # to be present as a single instance.
     # Notation: A is augmented by B
 
-    if molecule1.count == 1 and molecule2.count == 1:
+    # keep in mind that we decreased the counts in the preceding negative update;
+    # hence we correct counts by -1
+    if molecule1.count == 0 and molecule2.count == 0:
         # modify in place
         if molecule1.size > molecule2.size:
             # the recipient
@@ -329,14 +332,14 @@ def bimolecular_binding(reaction):
             # molecule1 will be removed from the mixture; there might be equivalent molecules
             # in the mixture depending on compaction
             # Note: the negative updates to reaction propensity were already done by calling negativeUpdate().
-    elif molecule1.count == 1:
+    elif molecule1.count == 0:
         # modify in place
         A = molecule1
         A_port = (agent1, site1)
         # we could use copy.deepcopy(), but it seems slow; this one is fast
         B = kamol.copy_molecule(molecule2, id_shift=A.label_counter, system=ka.system)
         B_port = (agent2, site2)
-    elif molecule2.count == 1:
+    elif molecule2.count == 0:
         # modify in place
         A = molecule2
         A_port = (agent2, site2)
@@ -370,7 +373,10 @@ def unimolecular_binding(reaction):
     choice, (molecule, _), (agent1, site1), (agent2, site2) = reaction
     # unimolecular binding between (agent1, site1), (agent2, site2) in molecule
     # "molecule" refers to a species, not to an instance
-    if molecule.count == 1:
+
+    # keep in mind that we decreased the counts in the preceding negative update;
+    # hence we correct counts by -1
+    if molecule.count == 0:
         # modify the only instance in place
         new_molecule = molecule  # new_molecule is just a new reference to the old object
     else:

@@ -30,13 +30,13 @@ def set_up_monitoring():
     Requires the mixture-wide local views.
     """
     internal = []
-    info = 'time,'
+    info = 'time | '
     for m_expr in ka.system.observable['!']:
         # this also generates canonical forms for the molecular observables
         m = kamol.KappaComplex(m_expr, system=ka.system)
         internal.append(m)
         txt = re.sub(r'\),', ')', m.kappa_expression())
-        info += f"{txt.strip()},"
+        info += f"{txt.strip()} | "
     # replace observables with their internal representation
     ka.system.observable['!'] = internal
 
@@ -45,19 +45,19 @@ def set_up_monitoring():
         m = kamol.KappaComplex(pattern, system=None, canon=False)
         internal.append(m)
         txt = re.sub(r'\),', ')', m.kappa_expression())
-        info += f'?{txt.strip()},'
+        info += f'?{txt.strip()} | '
     ka.system.observable['?'] = internal
 
     internal = []
     for item in ka.system.observable['b']:
         temp = item.split('-')
         internal.append(tuple(sorted(temp)))
-        info += f'{item},'
+        info += f'{item} | '
     ka.system.observable['b'] = internal
 
     for item in ka.system.observable['s']:
-        info += f'{item},'
-    info = info[:-1]
+        info += f'{item} | '
+    info = info[:-3]
 
     # initialize file with contents string
     with open(ka.system.obs_file, "w") as fp:

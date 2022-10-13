@@ -46,7 +46,8 @@ class KappaSignature:
 
         # change these definitions only if you know what you are doing
         self.symbols = r'[_~][a-zA-Z0-9_~+-]+|[a-zA-Z][a-zA-Z0-9_~+-]*'
-        self.mol = r'(?:@\d+)?'
+        # self.mol = r'(?:@\d+)?'              # integer
+        self.mol = r'(?:@[0-9]*[.]?[0-9]+)?'   # floating point number
         self.sID = r'x[0-9]+:'
         self.sep = '.'
 

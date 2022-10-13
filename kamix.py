@@ -19,9 +19,10 @@ def create_atoms(init_counts, signature=None, system=None):
     local_views = {}
     for agent in signature.default_agent_state:
         count = init_counts[agent]
-        atom = kappa.parser(signature.default_agent_state[agent])
-        komplex = kamol.KappaMolecule(atom, count=count, system=system, sig=signature, views=local_views)
-        complexes.append(komplex)
+        if count:
+            atom = kappa.parser(signature.default_agent_state[agent])
+            kappa_atom = kamol.KappaMolecule(atom, count=count, system=system, sig=signature, views=local_views)
+            complexes.append(kappa_atom)
     return 0, None, 0., complexes, local_views
 
 
@@ -39,6 +40,10 @@ class Mixture(snap.SnapShot):
         # This is a dictionary version of self.complexes, but keys are canonicalized kappa expressions for fast
         # identification. It adds another "footprint of self.complexes" to the memory requirements. Not a problem.
         self.canonical = {}
+        # This dictionary is for locating an 'atomic' species in 'complexes':
+        # complexes[self.index[self.canonical[atom_canonical[atom_type]]]
+        # We fill the dictionary over time.
+        self.atom_canonical = {}
         # 'self.index' is a dictionary {molecule: index} indexing the list self.complexes. All operations
         # on 'self.complexes' must be mediated via 'self.index'.This allows us to delete an arbitrary molecule
         # entry of 'self,complexes' in O(1) _and_ we can use self.index to organize the heap for
@@ -145,6 +150,7 @@ class Mixture(snap.SnapShot):
             for m in self.complexes:  # this is done only once, so we're good with looping
                 if m.size == 1:
                     atom_type = m.agents[next(iter(m.agents))]['info']['type']
+                    self.atom_canonical[atom_type] = m
                     if atom_type in ka.system.outflow_rate:
                         # outflows are unimolecular
                         self.activity_outflow[atom_type] = m.count * ka.system.outflow_rate[atom_type]
@@ -257,6 +263,9 @@ class Mixture(snap.SnapShot):
 
         if ka.system.canonicalize:
             del self.canonical[m.canonical]
+            if m.size == 1:
+                atom_type = m.agents[next(iter(m.agents))]['info']['type']
+                self.atom_canonical[atom_type] = None
 
         # finally, pop the last element from the list, as it has become redundant...
         self.complexes.pop()
@@ -275,8 +284,13 @@ class Mixture(snap.SnapShot):
         """
         self.index[m] = self.number_of_species
         self.complexes.append(m)
+
         if ka.system.canonicalize:
             self.canonical[m.canonical] = m
+            if m.size == 1:
+                atom_type = m.agents[next(iter(m.agents))]['info']['type']
+                self.atom_canonical[atom_type] = m
+
         self.number_of_species += 1
         # update the heap
         for st in ka.system.sim.heap['st']:

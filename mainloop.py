@@ -7,7 +7,7 @@ import kamon
 
 def main_loop():
 
-    system = kainit.initialize(parameter_file='TestData/parameters_test2.txt')
+    system = kainit.initialize(parameter_file='TestData/parameters_test3.txt')
 
     # if you read in from a snapshot file, you might want to zero these
     system.sim.time = 0.
@@ -24,27 +24,29 @@ def main_loop():
     # event-based case, a reaction event is carried out in addition to the observation.
     # A slight amount of code duplication makes things more readable...
 
+    kamon.monitor()
+
     if ka.system.sim_limit_type == 'time':
         while system.sim.time < system.sim_limit:
+            system.sim.advance_time()
             # print(system.sim.time)
             if system.sim.time >= observation_alert:
                 system.sim.time = observation_alert
                 kamon.monitor()
                 observation_alert += system.obs_freq
             else:
-                system.sim.advance_time()
+                system.sim.event += 1
                 system.sim.select_reaction()
                 system.sim.execute_reaction()
-                system.sim.event += 1
     else:
         while system.sim.event < system.sim_limit:
+            system.sim.advance_time()
             if system.sim.event == observation_alert:
                 ka.system.monitor()
                 observation_alert += system.obs_freq
-            system.sim.advance_time()
+            system.sim.event += 1
             system.sim.select_reaction()
             system.sim.execute_reaction()
-            system.sim.event += 1
 
     print(system.mixture.report())
     print(system.sim.report())
