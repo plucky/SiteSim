@@ -1,7 +1,7 @@
 
 
-           date and time (UTC): 2022-10-13 01:06:16
-                          uuid: 3cfdf652-4a93-11ed-97c2-784f4384713d
+           date and time (UTC): 2022-10-14 21:31:53
+                          uuid: 9f3ada4a-4c07-11ed-9829-784f4384713d
 
 
 COMMAND LINE ---------------------------------------------------------
@@ -11,21 +11,16 @@ None
 SIGNATURE ------------------------------------------------------------
 
 signature string
-A@39.5366(s[a.S$1]), B@39.5366(s[b.S$1]), S@0(a[s.A] b[s.B])
+A@50(l[r.A$1], r[l.A])
 
                                  agent A
-                                       s:  bonds -> ['a.S']
-                                 agent B
-                                       s:  bonds -> ['b.S']
-                                 agent S
-                                       a:  bonds -> ['s.A']
-                                       b:  bonds -> ['s.B']
+                                       l:  bonds -> ['r.A']
+                                       r:  bonds -> ['l.A']
 
-                                3 agents: A [39.5366], B [39.5366], S [0]
-                                 4 sites: ['A.s', 'B.s', 'S.a', 'S.b']
-                            2 bond types
-                                 A.s-a.S: 1
-                                 B.s-b.S: 1
+                                1 agents: A [50]
+                                 2 sites: ['A.l', 'A.r']
+                            1 bond types
+                                 A.l-r.A: 1
 
 
 PARAMETERS -----------------------------------------------------------
@@ -37,67 +32,54 @@ PARAMETERS -----------------------------------------------------------
                                     k_on: 1.000E+09
 
                                   Resize: 1.0
-                        Volume (resized): 4.200E-14
-             RingClosureFactor (resized): 1.000E+05
+                        Volume (resized): 2.250E-12
+             RingClosureFactor (resized): 1.000E+00
 
-          inter-molecular on-rate (s_on): 3.95366E-02
-     intra-molecular on-rate (s_ring_on): 3.95366E+03
-                     off-rate (A.s--S.a): 1.00000E+00
-                     off-rate (B.s--S.b): 1.00000E+00
-
-                         inflow rate (S): 2.52930E-01
+          inter-molecular on-rate (s_on): 7.38017E-04
+     intra-molecular on-rate (s_ring_on): 7.38017E-04
+                     off-rate (A.l--A.r): 1.00000E+00
 
                                 defaults
                               s_off_weak: 1.00000E+03
                             s_off_medium: 1.00000E+02
                             s_off_strong: 1.00000E+01
 
-                        initial agents A: 999 (39.5366 nM)
-                        initial agents B: 999 (39.5366 nM)
-                        initial agents S: 0 (0 nM)
+                        initial agents A: 67749 (50 nM)
 
-                      random number seed: 42
+                      random number seed: 4711
 
 SIMULATOR STATE ------------------------------------------------------
 
              simulator status at time t= 0.0
 
-                   total system activity: 2.52930E-01
+                   total system activity: 3.38740E+06
 
-                                   heaps: 8 x [height: 2 nodes: 7 occ: 0.50]
-HEAP bt+ | ('A.s', 'S.a') -> root value: 0.00E+00
-HEAP bt+ | ('B.s', 'S.b') -> root value: 0.00E+00
-HEAP bt- | ('A.s', 'S.a') -> root value: 0.00E+00
-HEAP bt- | ('B.s', 'S.b') -> root value: 0.00E+00
-HEAP st | S.a -> root value: 0.00E+00
-HEAP st | B.s -> root value: 9.99E+02
-HEAP st | A.s -> root value: 9.99E+02
-HEAP st | S.b -> root value: 0.00E+00
+                                   heaps: 4 x [height: 1 nodes: 3 occ: 0.50]
+HEAP bt+ | ('A.l', 'A.r') -> root value: 0.00E+00
+HEAP bt- | ('A.l', 'A.r') -> root value: 0.00E+00
+HEAP st | A.l -> root value: 6.77E+04
+HEAP st | A.r -> root value: 6.77E+04
 
 MIXTURE --------------------------------------------------------------
 
 initial mixture file: None
-   molecular species: 2
-   agents, molecules: ({'A': 999, 'B': 999}, 1998)
+   molecular species: 1
+   agents, molecules: ({'A': 67749}, 67749)
    size distribution:
-(1, 1998) ... (1, 1998)
+(1, 67749) ... (1, 67749)
                       system activities 
-                   total system activity: 2.52930E-01
+                   total system activity: 3.38740E+06
            unimolecular binding activity: 0.00000E+00
               bond dissociation activity: 0.00000E+00
-            bimolecular binding activity: 0.00000E+00
+            bimolecular binding activity: 3.38740E+06
 
          system activities by bond type 
           unimolecular binding activity 
-                          ('A.s', 'S.a'): 0.00000E+00
-                          ('B.s', 'S.b'): 0.00000E+00
+                          ('A.l', 'A.r'): 0.00000E+00
              bond dissociation activity 
-                          ('A.s', 'S.a'): 0.00000E+00
-                          ('B.s', 'S.b'): 0.00000E+00
+                          ('A.l', 'A.r'): 0.00000E+00
            bimolecular binding activity 
-                          ('A.s', 'S.a'): 0.00000E+00
-                          ('B.s', 'S.b'): 0.00000E+00
+                          ('A.l', 'A.r'): 3.38740E+06
                         inflow activity 
-                             atom type S: 2.52930E-01
                        outflow activity 
 

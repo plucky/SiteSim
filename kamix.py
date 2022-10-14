@@ -313,18 +313,15 @@ class Mixture(snap.SnapShot):
             self.remove_molecular_species(m)
         else:
             # update the heap
-            for st in ka.system.sim.heap['st']:
-                data_item = m.free_site[st] * m.count
-                ka.system.sim.heap['st'][st].modify(data_item, self.index[m])
-            for bt in ka.system.sim.heap['bt+']:
-                data_item = m.binding[bt] * m.count
-                ka.system.sim.heap['bt+'][bt].modify(data_item, self.index[m])
-            for bt in ka.system.sim.heap['bt-']:
-                data_item = m.unbinding[bt] * m.count
-                ka.system.sim.heap['bt-'][bt].modify(data_item, self.index[m])
-
-    def __str__(self):
-        self.report()
+            hp = ka.system.sim.heap['st']
+            for st in hp:
+                hp[st].modify(m.free_site[st] * m.count, self.index[m])
+            hp = ka.system.sim.heap['bt+']
+            for bt in hp:
+                hp[bt].modify(m.binding[bt] * m.count, self.index[m])
+            hp = ka.system.sim.heap['bt-']
+            for bt in hp:
+                hp[bt].modify(m.unbinding[bt] * m.count, self.index[m])
 
     def update_mixture(self, new):
         # add the reaction product 'm' to the mixture
@@ -476,7 +473,10 @@ class Mixture(snap.SnapShot):
                 info += (s + m.summary(reactivity=reactivity, show_bonds=show_bonds)[len(s)+1:])
                 n += 1
         return info
-        
+
+    def __str__(self):
+        self.report()
+
 # -------------------------------------------------------------------------------------------
 
 

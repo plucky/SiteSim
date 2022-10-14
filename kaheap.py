@@ -51,7 +51,7 @@ class Heap:
         # initialize the internal node values, by 'descending' from the parent of the last data item towards the root
         i = (self.last_data_item - 1) // 2  # parent of the last data item
         while i >= 0:
-            self.update_node(i)
+            self.tree[i] = self.tree[2 * i + 1] + self.tree[2 * i + 2]  #self.update_node(i)
             i = i - 1
 
     def update_node(self, i):
@@ -61,7 +61,7 @@ class Heap:
     def update_from_leaf(self, i):
         while i > 0:
             i = (i - 1) // 2  # parent of i
-            self.update_node(i)
+            self.tree[i] = self.tree[2 * i + 1] + self.tree[2 * i + 2]  # self.update_node(i)
 
     def add_layer(self):
         # Note: Python is 'pass-by-object-reference', so self.data points to our original data content.
@@ -109,7 +109,10 @@ class Heap:
         # Call this _after_ modifying properties of a molecular species.
         i = index + self.first_data_item
         self.tree[i] = data_item
-        self.update_from_leaf(i)
+        # the below is self.update_from_leaf(i)
+        while i > 0:
+            i = (i - 1) // 2  # parent of i
+            self.tree[i] = self.tree[2 * i + 1] + self.tree[2 * i + 2]  # self.update_node(i)
 
     def draw_node(self, rv):
         i = 0  # index of the root

@@ -1,6 +1,7 @@
 # Walter Fontana 2022
 
 from collections import deque
+import functools as fun
 import sys
 
 import kamol
@@ -16,7 +17,7 @@ def components(kappaMol, traverse='bfs'):
     because recursion seems very slow in Python.
     """
     visited = set()
-    agents = []
+    agents = {}
     nc = 0
 
     # BFS with queue
@@ -24,16 +25,16 @@ def components(kappaMol, traverse='bfs'):
         queue = deque()  # [1st, 2nd, 3rd, 4th, ...]  add via append(); remove bia popleft()
         for node in kappaMol.agents:
             if node not in visited:
-                # if nc == 1 at this point, we could exit, since dissociation
-                # cannot generate more than 2 components. However, we may pay a higher cost
-                # when recovering the components. To think about.
+                # if nc == 1 at this point, we can exit, since dissociation
+                # cannot generate more than 2 components. (Check if this is efficient.)
+                if nc == 1:
+                    break
                 nc += 1
-                agents += [{}]
                 queue.append(node)
                 visited.add(node)
                 while queue:
                     current = queue.popleft()  # a node in this component
-                    agents[nc - 1][current] = kappaMol.agents[current]
+                    agents[current] = kappaMol.agents[current]
                     for neighbor in kappaMol.adjacency[current]:
                         if neighbor not in visited:
                             visited.add(neighbor)
@@ -44,14 +45,15 @@ def components(kappaMol, traverse='bfs'):
         stack = deque()  # [1st, 2nd, 3rd, 4th, ...]  add via append(); remove bia pop()
         for node in kappaMol.agents:
             if node not in visited:
+                if nc == 1:
+                    break
                 nc += 1
-                agents += [{}]
                 stack.append(node)
                 while stack:
                     current = stack.pop()  # a node in this component
                     if current not in visited:
                         visited.add(current)
-                        agents[nc - 1][current] = kappaMol.agents[current]
+                        agents[current] = kappaMol.agents[current]
                         for neighbor in kappaMol.adjacency[current]:
                             if neighbor not in visited:
                                 stack.append(neighbor)
@@ -59,7 +61,12 @@ def components(kappaMol, traverse='bfs'):
     # for i in range(0, nc):
     #     expressions += [kappa_expression(agents[i], kappaMol.bonds, kappaMol.bondsep)]
 
-    return agents  # a list of agent dictionaries, one for each component
+    if len(agents) == len(kappaMol.agents):
+        return [kappaMol.agents]
+    else:
+        component1 = set(agents)
+        list(map(lambda k: kappaMol.agents.pop(k, None), component1))
+        return [agents, kappaMol.agents]  # agent dictionaries, one for each component
 
 
 def dissociate_bond(A, port1, port2):
@@ -90,7 +97,7 @@ def dissociate_bond(A, port1, port2):
         C = kamol.KappaMolecule(component_agents[1], count=0, system=ka.system)
         return 2, [B, C]
 
-    elif nc == 1:
+    else:
         # no fission has occurred
         # We need to update the KappaMolecule properties now that a bond has been lost.
 
@@ -159,8 +166,6 @@ def dissociate_bond(A, port1, port2):
         # calculate reaction propensities
         A.internal_reactivity()
         return 1, [A, None]
-    else:
-        sys.exit("Fission produced more than 2 components.")
 
 
 def bind_molecules(A, B, A_port, B_port):

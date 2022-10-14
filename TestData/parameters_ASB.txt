@@ -10,7 +10,7 @@
 
 %par: seed = 42
 
-%par: sim_limit = 5000 time               //  {time, event}
+%par: sim_limit = 1000 time               //  {time, event}
 %par: obs_frequency = 50.
 
 %obs: ! A(s[1]), B(s[2]), S(a[1] b[2])  // a molecule

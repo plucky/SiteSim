@@ -40,7 +40,7 @@ class System:
         self.obs_freq = 0.
         self.obs_counter = 0
         # observable types: ! -> molecule, ? -> pattern, b -> bond, s -> free site
-        self.observable = {'!': [], '?': [], 'b': [], 's': []}
+        self.observable = {'!': [], '?': [], 'b': [], 's': [], 'p': []}
 
         self.report_file = None
         self.obs_file = None        # observation file (typically a csv)
