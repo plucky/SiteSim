@@ -9,6 +9,7 @@ import kareact as react
 
 import numpy as np
 import sys
+import json
 
 
 class Random:
@@ -261,7 +262,6 @@ class CTMC:
         info += f'{"simulator status at time t=":>{pp_width}} {self.time}\n'
         info += '\n'
         info += f'{"total system activity":>{pp_width}}: {ka.system.mixture.total_activity:1.5E}\n'
-        info += '\n'
         n_heaps = len(self.heap["bt+"]) + len(self.heap["bt-"]) + len(self.heap["st"])
         if n_heaps > 0:
             info += f'{"heaps":>{pp_width}}: {n_heaps} x ['
@@ -269,8 +269,14 @@ class CTMC:
             b = next(iter(self.heap[a]))
             n_nodes = self.heap[a][b].n_internal_nodes + self.heap[a][b].n_leaves
             info += f"height: {self.heap[a][b].height} nodes: {n_nodes} "
-            info += f"occ: {self.heap[a][b].n_entries / self.heap[a][b].n_leaves:.2f}]\n"
-            for t in ['bt+', 'bt-', 'st']:
-                for k in self.heap[t]:
-                    info += f"HEAP {self.heap[t][k].id} -> root value: {self.heap[t][k].tree[0]:1.2E}\n"
+            info += f"occ: {self.heap[a][b].n_entries / self.heap[a][b].n_leaves:.2f}]\n\n"
+            # for t in ['bt+', 'bt-', 'st']:
+            #     for k in self.heap[t]:
+            #         info += f"HEAP {self.heap[t][k].id} -> root value: {self.heap[t][k].tree[0]:1.2E}\n"
+            info += f'{"random number generator state":>{pp_width}}\n'
+            info += json.dumps(self.rng.bit_generator.state, sort_keys=False, indent=4)
+            info += '\n'
         return info
+
+    def __str__(self, pp_width=40):
+        return self.report(pp_width=pp_width)

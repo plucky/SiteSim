@@ -1,7 +1,7 @@
 
 
-           date and time (UTC): 2022-10-14 21:31:53
-                          uuid: 9f3ada4a-4c07-11ed-9829-784f4384713d
+           date and time (UTC): 2022-10-15 23:08:53
+                          uuid: 56b2ff78-4cde-11ed-9a27-784f4384713d
 
 
 COMMAND LINE ---------------------------------------------------------
@@ -17,10 +17,9 @@ A@50(l[r.A$1], r[l.A])
                                        l:  bonds -> ['r.A']
                                        r:  bonds -> ['l.A']
 
-                                1 agents: A [50]
-                                 2 sites: ['A.l', 'A.r']
-                            1 bond types
-                                 A.l-r.A: 1
+                         1 agent type(s): A [50 nM]
+                          2 site type(s): A.l, A.r
+                          1 bond type(s): A.l-r.A
 
 
 PARAMETERS -----------------------------------------------------------
@@ -33,10 +32,10 @@ PARAMETERS -----------------------------------------------------------
 
                                   Resize: 1.0
                         Volume (resized): 2.250E-12
-             RingClosureFactor (resized): 1.000E+00
+             RingClosureFactor (resized): 0.000E+00
 
           inter-molecular on-rate (s_on): 7.38017E-04
-     intra-molecular on-rate (s_ring_on): 7.38017E-04
+     intra-molecular on-rate (s_ring_on): 0.00000E+00
                      off-rate (A.l--A.r): 1.00000E+00
 
                                 defaults
@@ -50,36 +49,43 @@ PARAMETERS -----------------------------------------------------------
 
 SIMULATOR STATE ------------------------------------------------------
 
-             simulator status at time t= 0.0
+             simulator status at time t= 1.0000095468911596
 
-                   total system activity: 3.38740E+06
+                   total system activity: 1.18252E+05
+                                   heaps: 4 x [height: 6 nodes: 127 occ: 0.84]
 
-                                   heaps: 4 x [height: 1 nodes: 3 occ: 0.50]
-HEAP bt+ | ('A.l', 'A.r') -> root value: 0.00E+00
-HEAP bt- | ('A.l', 'A.r') -> root value: 0.00E+00
-HEAP st | A.l -> root value: 6.77E+04
-HEAP st | A.r -> root value: 6.77E+04
+           random number generator state
+{
+    "bit_generator": "PCG64",
+    "state": {
+        "state": 304365014791255195012901849709613488164,
+        "inc": 133845399783812146498062992767948073001
+    },
+    "has_uint32": 0,
+    "uinteger": 2663922159
+}
 
 MIXTURE --------------------------------------------------------------
 
 initial mixture file: None
-   molecular species: 1
-   agents, molecules: ({'A': 67749}, 67749)
-   size distribution:
-(1, 67749) ... (1, 67749)
+   molecular species: 54
+              agents: 'A': 67749
+           molecules: 8978
+   size distribution: (1, 1179), (2, 1030), (3, 930), (4, 757) ... (55, 1), (56, 1), (58, 1), (70, 1)
+
                       system activities 
-                   total system activity: 3.38740E+06
+                   total system activity: 1.18252E+05
            unimolecular binding activity: 0.00000E+00
-              bond dissociation activity: 0.00000E+00
-            bimolecular binding activity: 3.38740E+06
+              bond dissociation activity: 5.87710E+04
+            bimolecular binding activity: 5.94809E+04
 
          system activities by bond type 
           unimolecular binding activity 
                           ('A.l', 'A.r'): 0.00000E+00
              bond dissociation activity 
-                          ('A.l', 'A.r'): 0.00000E+00
+                          ('A.l', 'A.r'): 5.87710E+04
            bimolecular binding activity 
-                          ('A.l', 'A.r'): 3.38740E+06
+                          ('A.l', 'A.r'): 5.94809E+04
                         inflow activity 
                        outflow activity 
 

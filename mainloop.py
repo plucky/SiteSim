@@ -13,8 +13,7 @@ def main_loop():
     system.sim.time = 0.
     system.sim.event = 0
 
-    print(system.mixture.report())
-    print(system.sim.report())
+    system.report()
 
     observation_alert = 0
     monitor = kamon.Monitor()
@@ -24,12 +23,12 @@ def main_loop():
     # event-based case, a reaction event is carried out in addition to the observation.
     # A slight amount of code duplication makes things more readable...
 
-    monitor.observe()
+    monitor.snapshot()
+    # monitor.observe()
 
     if ka.system.sim_limit_type == 'time':
         while system.sim.time < system.sim_limit:
             system.sim.advance_time()
-            # print(system.sim.time)
             if system.sim.time >= observation_alert:
                 system.sim.time = observation_alert
                 monitor.observe()
@@ -37,20 +36,21 @@ def main_loop():
             else:
                 system.sim.event += 1
                 system.sim.select_reaction()
-                # print(f'event {system.sim.event} type {system.sim.current_reaction[0]}')
                 system.sim.execute_reaction()
     else:
         while system.sim.event < system.sim_limit:
             system.sim.advance_time()
             if system.sim.event == observation_alert:
-                ka.system.monitor()
+                monitor.observe()
                 observation_alert += system.obs_freq
             system.sim.event += 1
             system.sim.select_reaction()
             system.sim.execute_reaction()
 
-    print(system.mixture.report())
-    print(system.sim.report())
+    monitor.snapshot()
+    system.report()
+
+    print("Done!\n")
 
 
 if __name__ == '__main__':

@@ -412,19 +412,22 @@ class Mixture(snap.SnapShot):
         info = f"\n{'MIXTURE '.ljust(70, '-')}\n\n"
         info += f'{"initial mixture file":>20}: {self.file}\n'
         info += f'{"molecular species":>20}: {self.number_of_species}\n'
-        info += f'{"agents, molecules":>20}: {self.count_agents_and_molecules()}\n'
+        a, m = self.count_agents_and_molecules()
+        s = f'{a}'[1:-1]
+        info += f'{"agents":>20}: {s}\n'
+        info += f'{"molecules":>20}: {m}\n'
 
         if ka.system.db_level == 1:
             info += f'{"free sites":>20}:\n'
             for st in self.total_free_sites:
                 info += f'{st:>20}: {self.total_free_sites[st]}\n'
 
-        info += f'{"size distribution":>20}:\n'
+        info += f'{"size distribution":>20}: '
         size_dist = self.get_size_distribution()
         d1 = f'{size_dist[:4]}'
         d2 = f'{size_dist[-4:]}'
         info += f'{d1[1:-1]} ... {d2[1:-1]}'
-        info += '\n'
+        info += '\n\n'
 
         info += f'{"system activities ":>{pp_width}}\n'
         info += f'{"total system activity":>{pp_width}}: {self.total_activity:1.5E}\n'
@@ -474,8 +477,8 @@ class Mixture(snap.SnapShot):
                 n += 1
         return info
 
-    def __str__(self):
-        self.report()
+    def __str__(self, pp_width=40):
+        return self.report(pp_width=pp_width)
 
 # -------------------------------------------------------------------------------------------
 

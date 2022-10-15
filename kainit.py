@@ -153,7 +153,7 @@ def initialize(parameter_file=None, invocation=None):
     ka.system.sim = kasim.CTMC()
 
     # initial REPORT
-    ka.system.reporter()
+    ka.system.report()
 
     # ka.system.snapshot("TestOutput/snap0.ka", label=True)
 

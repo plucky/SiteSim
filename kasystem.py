@@ -18,8 +18,6 @@ class System:
         """
         self.date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         self.uuid = uuid.uuid1()
-        self.snapshot_root_name = 'snap'
-        self.snapshot_count = 0
 
         self.cmdline = None
 
@@ -38,7 +36,6 @@ class System:
         self.sim_limit_type = 'time'  # {time, event}
         self.sim_limit = 0.
         self.obs_freq = 0.
-        self.obs_counter = 0
         # observable types: ! -> molecule, ? -> pattern, b -> bond, s -> free site
         self.observable = {'!': [], '?': [], 'b': [], 's': [], 'p': []}
 
@@ -58,7 +55,7 @@ class System:
         self.inflow_rate = {}   # indexed by atom type
         self.outflow_rate = {}  # indexed by atom type
 
-    def reporter(self):
+    def report(self):
         with open(self.report_file, "w") as report:
             if not self.parameters:
                 print(f'No parameters!')
@@ -76,9 +73,9 @@ class System:
                 print(f'No initial mixture!')
                 sys.exit()
             else:
-                mix_info = self.mixture.report()
+                mix_info = str(self.mixture)
 
-            sim_info = self.sim.report()
+            sim_info = str(self.sim)
 
             report.write(f'\n\n{"date and time (UTC)":>30}: {self.date}\n')
             report.write(f'{"uuid":>30}: {self.uuid}\n\n')

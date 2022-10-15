@@ -271,7 +271,7 @@ class Parameters:
                                 if name == 'numbering':
                                     ka.system.snap_numbering = value
 
-    def __str__(self, pp_width=40):
+    def report(self, pp_width=40):
         """
         Pretty print the system parameters
         """
@@ -336,6 +336,9 @@ class Parameters:
         info += f'{"random number seed":>{pp_width}}: {self.rng_seed}\n'
 
         return info
+
+    def __str__(self, pp_width=40):
+        return self.report(pp_width=pp_width)
 
 # -----------------------------------------------------------------
 

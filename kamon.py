@@ -8,29 +8,14 @@ import kamol
 import kasystem as ka
 
 
-def make_snapshot_filename():
-    """
-    Construct a snapshot file name.
-    """
-    if ka.system.snap_numbering == 'serial':
-        # compute the field size to pad numbers for files to be numerically sorted by OS
-        field_size = int(math.log10(ka.system.sim_limit / ka.system.obs_freq) + 1)
-        form = '{' + f':0{field_size}d' + '}'
-        snap_fn = ka.system.snap_root + form.format(ka.system.obs_counter) + '.ka'
-    else:
-        snap_fn = ka.system.snap_root + f'{ka.system.obs_counter}' + '.ka'
-    return snap_fn
-
-
-def make_snapshot():
-    pass
-
-
 class Monitor:
     def __init__(self):
         self.monitor_size_re = re.compile(r'\s*size\s*\[(\d*)\s*-\s*(\d*)\]')
         self.min_size = 0
         self.max_size = 0
+        self.obs_counter = 0
+        self.name_form = ''
+
         self.set_up_monitoring()
 
     def set_up_monitoring(self):
@@ -38,6 +23,14 @@ class Monitor:
         Convert molecular observables into canonical form for fast retrieval.
         Requires the mixture-wide local views.
         """
+
+        # set up file name format for snapshots
+        if ka.system.snap_numbering == 'serial':
+            # compute the field size to pad numbers for files to be numerically sorted by OS
+            if ka.system.sim_limit > 0:
+                field_size = int(math.log10(ka.system.sim_limit / ka.system.obs_freq) + 1)
+                self.name_form = '{' + f':0{field_size}d' + '}'
+
         internal = []
         info = 'time, '
         for m_expr in ka.system.observable['!']:
@@ -126,4 +119,12 @@ class Monitor:
         with open(ka.system.obs_file, "a") as fp:
             fp.write(info + '\n')
 
+    def snapshot(self):
+        # assemble filename
+        if self.name_form:
+            snap_fn = ka.system.snap_root + self.name_form.format(self.obs_counter) + '.ka'
+        else:
+            snap_fn = ka.system.snap_root + f'{self.obs_counter}' + '.ka'
 
+        ka.system.mixture.make_snapshot(snap_fn)
+        self.obs_counter += 1

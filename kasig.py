@@ -249,7 +249,7 @@ class KappaSignature:
 
         return consistent, info
 
-    def __str__(self, pp_width=40):
+    def report(self, pp_width=40):
         """
         Pretty print the signature.
         """
@@ -265,21 +265,31 @@ class KappaSignature:
                 if self.signature[agent][site]["bonds"]:
                     info += f'{site:>{pp_width}}:  bonds -> {self.signature[agent][site]["bonds"]}\n'
         info += '\n'
-        s = f'{len(self.signature)} agents'
+        s = f'{len(self.signature)} agent type(s)'
         temp = ''
         for a in self.init_agents:
-            temp += f'{a} [{self.init_agents[a]}], '
+            temp += f'{a} [{self.init_agents[a]} nM], '
         info += f'{s:>{pp_width}}: {temp[:-2]}\n'
-        s = f'{len(self.site_types)} sites'
-        info += f'{s:>{pp_width}}: {self.site_types}\n'
-        s = f'{len(self.bond_types)} bond types'
-        info += f'{s:>{pp_width}}\n'
+        s = f'{len(self.site_types)} site type(s)'
+        s2 = f'{self.site_types}'
+        s2 = re.sub(r"'", "", s2[1:-1])
+        info += f'{s:>{pp_width}}: {s2}\n'
+        s = f'{len(self.bond_types)} bond type(s)'
+        info += f'{s:>{pp_width}}:'
+        first = True
         for s1, s2 in self.bond_types:
+            # rearranging strings for easier reading on output
             b = f"{s1}-{''.join([s2.split('.')[1], '.', s2.split('.')[0]])}"
-            info += f'{b:>{pp_width}}: {self.bond_types[(s1, s2)]}\n'
+            if first:
+                info += f' {b}\n'
+            else:
+                info += f'{" ":>{pp_width}} {b}\n'
+            first = False
         info += '\n'
         return info
 
+    def __str__(self, pp_width=40):
+        return self.report(pp_width=pp_width)
 
 # -----------------------------------------------------------------
 
