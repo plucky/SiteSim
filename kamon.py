@@ -11,8 +11,10 @@ import kasystem as ka
 class Monitor:
     def __init__(self):
         self.monitor_size_re = re.compile(r'\s*size\s*\[(\d*)\s*-\s*(\d*)\]')
+        self.monitor_max_size_re = re.compile(r'\s*maxsize\s*\[(\d*)\]')
         self.min_size = 0
         self.max_size = 0
+        self.max_size_ranks = 0
         self.obs_counter = 0
         self.name_form = ''
 
@@ -62,9 +64,11 @@ class Monitor:
 
         for item in ka.system.observable['p']:
             if 'size' in item:  # size distribution
-                if item == 'maxsize':
-                    # determine max size count
-                    pass
+                if 'maxsize' in item:
+                    match = self.monitor_max_size_re.match(item)
+                    self.max_size_ranks = int(match.group(1))
+                    for i in range(1, self.max_size_ranks + 1):
+                        info += f'size rank {i},'
                 else:
                     match = self.monitor_size_re.match(item)
                     if not match:
@@ -104,9 +108,14 @@ class Monitor:
 
         for item in ka.system.observable['p']:
             if 'size' in item:  # size distribution
-                if item == 'maxsize':
+                if 'maxsize' in item:
                     # determine max size count
-                    pass
+                    i = 1
+                    for m in sorted(ka.system.mixture.complexes, key=lambda x: x.size, reverse=True):
+                        info += f'{m.size}, '
+                        i += 1
+                        if i > self.max_size_ranks:
+                            break
                 else:
                     obs = defaultdict(int)
                     for m in ka.system.mixture.complexes:

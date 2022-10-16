@@ -4,10 +4,12 @@ import kasystem as ka
 import kainit
 import kamon
 
+import time
+
 
 def main_loop():
 
-    system = kainit.initialize(parameter_file='TestData/parameters_poly.txt')
+    system = kainit.initialize(parameter_file='TestData/parameters_AP.txt')
 
     # if you read in from a snapshot file, you might want to zero these
     system.sim.time = 0.
@@ -50,7 +52,9 @@ def main_loop():
     monitor.snapshot()
     system.report()
 
-    print("Done!\n")
+    print("\nDone!")
+    print(f'events: {system.sim.event}')
+    print(f'cpu: {time.process_time()}\n')
 
 
 if __name__ == '__main__':
