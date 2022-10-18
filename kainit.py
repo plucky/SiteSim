@@ -14,6 +14,7 @@ import kamol
 import kamix
 import kasim
 import kamatch
+import kamon
 
 
 def test_invocation():
@@ -133,6 +134,9 @@ def initialize(parameter_file=None, invocation=None):
             # random number SEED
             elif key == 'seed':
                 seed = arg_values[key]
+
+    # create monitor (needs further initializing before starting the main loop)
+    ka.system.monitor = kamon.Monitor()
 
     # initialize PARAMETERS
     ka.system.parameters = kaparam.Parameters(file=ka.system.parameter_file)

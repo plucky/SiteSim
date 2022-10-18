@@ -1,11 +1,16 @@
 # Walter Fontana 2022
 
 from collections import deque
-import functools as fun
-import sys
+import re
 
 import kamol
 import kasystem as ka
+
+
+def convert(text): return int(text) if text.isdigit() else text
+
+
+def alphanum_key(key): return [convert(c) for c in re.split('([0-9]+)', key)]
 
 
 def components(kappaMol, traverse='bfs'):
@@ -64,8 +69,7 @@ def components(kappaMol, traverse='bfs'):
     if len(agents) == len(kappaMol.agents):
         return [kappaMol.agents]
     else:
-        component1 = set(agents)
-        list(map(lambda k: kappaMol.agents.pop(k, None), component1))
+        list(map(lambda k: kappaMol.agents.pop(k, None), agents))
         return [agents, kappaMol.agents]  # agent dictionaries, one for each component
 
 
@@ -104,23 +108,22 @@ def dissociate_bond(A, port1, port2):
         # remove from the bond dictionary
         del A.bonds[(port1, port2)]
         # standardize and update the bond *types*; labels don't matter
-        n1, l1 = kamol.get_identifier(a_agent)
-        n2, l2 = kamol.get_identifier(b_agent)
-        # possible exchange when n1 == n2, but doesn't matter in that case
-        (t1, s1), (t2, s2) = sorted([(n1, a_site), (n2, b_site)])  # sorting not needed... (already sorted)
-        ta, tb = (''.join([t1, '.', s1]), ''.join([t2, '.', s2]))
+        b = sorted([port1, port2], key=lambda x: (alphanum_key(x[0]), alphanum_key(x[0])))
+        ta, tb = kamol.bond2type(tuple(b))
         A.bond_type[(ta, tb)] -= 1
         A.bond_type_list[(ta, tb)].remove((port1, port2))
         # update degree
         A.agents[a_agent]['info']['degree'] -= 1
         A.agents[b_agent]['info']['degree'] -= 1
         # update free sites
-        site1_type = ''.join([n1, '.', a_site])  # this could be simply ta, if ports are guaranteed to be sorted...
-        site2_type = ''.join([n2, '.', b_site])  # this could be simply tb, if ports are guaranteed to be sorted...
+        site1_type = ''.join([re.sub(r'.\d+.', '', a_agent), '.', a_site])
+        site2_type = ''.join([re.sub(r'.\d+.', '', b_agent), '.', b_site])
         A.free_site[site1_type] += 1
         A.free_site_list[site1_type] += [port1]
+        A.free_site_list[site1_type].sort(key=lambda x: alphanum_key(x[0]))
         A.free_site[site2_type] += 1
         A.free_site_list[site2_type] += [port2]
+        A.free_site_list[site2_type].sort(key=lambda x: alphanum_key(x[0]))
         # update the agent self-binding counts
         for bt in A.signature.bond_types:
             st1, st2 = bt
@@ -168,7 +171,7 @@ def dissociate_bond(A, port1, port2):
         return 1, [A, None]
 
 
-def bind_molecules(A, B, A_port, B_port):
+def make_bond(A, B, A_port, B_port):
     """
     Binds KappaMolecules A and B by grafting B onto A's data structure. (Nothing is returned. The result is A.)
     B's agent labels must have been shifted by the number of agents in A. If the binding is intra-molecular,
@@ -194,6 +197,7 @@ def bind_molecules(A, B, A_port, B_port):
             A.agent_self_binding[bt] += B.agent_self_binding[bt]
         for st in B.free_site:
             A.free_site[st] += B.free_site[st]
+            # does not need sorting, because we shifted the labels of B-agents
             A.free_site_list[st].extend(B.free_site_list[st])
         A.bonds.update(B.bonds)
         # A.adjacency.update(B.adjacency)
@@ -207,26 +211,21 @@ def bind_molecules(A, B, A_port, B_port):
     A.agents[b_agent]['iface'][b_site]['bond'] = ''.join([a_agent, A.bond_sep, a_site])
 
     # standardize the bond
-    n1, l1 = kamol.get_identifier(a_agent)
-    n2, l2 = kamol.get_identifier(b_agent)
-    (t1, l1, s1), (t2, l2, s2) = sorted([(n1, int(l1), a_site), (n2, int(l2), b_site)])
-    b = (kamol.add_identifier(t1, str(l1)), s1), (kamol.add_identifier(t2, str(l2)), s2)
+    b = sorted([A_port, B_port], key=lambda x: (alphanum_key(x[0]), alphanum_key(x[1])))
+    b = tuple(b)
     # update the bond dict
     A.bonds[b] = 1
-    # update the adjacency list with the new bond
-    # A.adjacency[a_agent].append(b_agent)
-    # A.adjacency[b_agent].append(a_agent)
-    # standardize and update the bond *types*; labels don't matter
-    (t1, s1), (t2, s2) = sorted([(n1, a_site), (n2, b_site)])
-    ta, tb = (''.join([t1, '.', s1]), ''.join([t2, '.', s2]))
+    (ta, tb) = kamol.bond2type(b)
     A.bond_type[(ta, tb)] += 1
     A.bond_type_list[(ta, tb)] += [b]
+    # keep sorted as in KappaMolecule
+    A.bond_type_list[(ta, tb)].sort(key=lambda x: (alphanum_key(x[0][0]), alphanum_key(x[0][1])))
     # update degree
     A.agents[a_agent]['info']['degree'] += 1
     A.agents[b_agent]['info']['degree'] += 1
     # update free sites
-    a_site_type = ''.join([n1, '.', a_site])
-    b_site_type = ''.join([n2, '.', b_site])
+    a_site_type = ''.join([re.sub(r'.\d+.', '', a_agent), '.', a_site])
+    b_site_type = ''.join([re.sub(r'.\d+.', '', b_agent), '.', b_site])
     A.free_site[a_site_type] -= 1
     A.free_site_list[a_site_type].remove(A_port)
     A.free_site[b_site_type] -= 1
@@ -282,7 +281,7 @@ def bind_molecules(A, B, A_port, B_port):
 
 def bond_dissociation(reaction):
     """
-    Organizes the execution of a bond dissolution. Care is taken (or so I believe) to free up memory...
+    Organizes the execution of a bond dissolution.
     """
     choice, (molecule, _), (agent1, site1), (agent2, site2) = reaction
     # dissociation of the bond between (agent1, site1), (agent2, site2) in molecule
@@ -307,7 +306,7 @@ def bond_dissociation(reaction):
 
 def bimolecular_binding(reaction):
     """
-    Organizes the execution of an inter-molecular binding event. Care is taken to free up memory...
+    Organizes the execution of an inter-molecular binding event.
     """
     choice, (molecule1, molecule2), (agent1, site1), (agent2, site2) = reaction
     # In the cases below, we modify the recipient A in place; this is meant
@@ -366,14 +365,14 @@ def bimolecular_binding(reaction):
     b_agent_type, b_agent_label = kamol.get_identifier(b_agent)
     b_agent_remapped = kamol.add_identifier(b_agent_type, str(int(b_agent_label) + A.label_counter))
     # execute the binding and update the data structure of A
-    bind_molecules(A, B, A_port, (b_agent_remapped, b_site))
+    make_bond(A, B, A_port, (b_agent_remapped, b_site))
 
     return A
 
 
 def unimolecular_binding(reaction):
     """
-    Organizes the execution of an intra-molecular binding event. Care is taken to free up memory...
+    Organizes the execution of an intra-molecular binding event.
     """
     choice, (molecule, _), (agent1, site1), (agent2, site2) = reaction
     # unimolecular binding between (agent1, site1), (agent2, site2) in molecule
@@ -390,7 +389,7 @@ def unimolecular_binding(reaction):
         new_molecule = kamol.copy_molecule(molecule, system=ka.system)
         # can't have become zero, or we would be in the other branch
     # execute the binding
-    bind_molecules(new_molecule, None, (agent1, site1), (agent2, site2))
+    make_bond(new_molecule, None, (agent1, site1), (agent2, site2))
 
     return new_molecule
 

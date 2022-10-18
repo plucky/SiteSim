@@ -32,17 +32,12 @@ class System:
         self.parameters = None      # system parameters
         self.mixture = None         # mixture of kappa expressions
         self.sim = None             # ctmc simulator
+        self.monitor = None         # observable monitor
 
         self.sim_limit_type = 'time'  # {time, event}
         self.sim_limit = 0.
-        self.obs_freq = 0.
-        # observable types: ! -> molecule, ? -> pattern, b -> bond, s -> free site
-        self.observable = {'!': [], '?': [], 'b': [], 's': [], 'p': []}
 
         self.report_file = None
-        self.obs_file = None        # observation file (typically a csv)
-        self.snap_root = None       # root fn of snapshots
-        self.snap_numbering = ''    # snapshot numbering scheme: {serial, event}
         self.parameter_file = None
         self.mixture_file = None
         self.signature_string = ''  # signature string

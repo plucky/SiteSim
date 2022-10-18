@@ -5,6 +5,8 @@ This module manages the 'mixture' of KappaMolecules.
 # population of Kappa complexes
 
 import pprint
+import json
+
 import kasnap as snap
 import kasystem as ka
 import kamol
@@ -23,7 +25,7 @@ def create_atoms(init_counts, signature=None, system=None):
             atom = kappa.parser(signature.default_agent_state[agent])
             kappa_atom = kamol.KappaMolecule(atom, count=count, system=system, sig=signature, views=local_views)
             complexes.append(kappa_atom)
-    return 0, None, 0., complexes, local_views
+    return 0, None, None, 0., complexes, local_views
 
 
 class Mixture(snap.SnapShot):
@@ -53,7 +55,7 @@ class Mixture(snap.SnapShot):
 
         if not file:
             value = create_atoms(ka.system.parameters.init_agents, signature=system.signature, system=system)
-            self.event, self.origin_uuid, self.time, self.complexes, self.local_views = value
+            self.event, self.origin_uuid, self.rg_state, self.time, self.complexes, self.local_views = value
             self.origin_uuid = ka.system.uuid
             self.number_of_species = len(self.complexes)
 
@@ -378,7 +380,7 @@ class Mixture(snap.SnapShot):
         for m in to_delete:
             self.remove_molecular_species(m)
 
-    def make_snapshot(self, file, label=False, pretty=False, sort=True):
+    def make_snapshot(self, file, label=False, pretty=False, sort=False):
         """
         Produces a snapshot of the mixture.
         'label' indicates whether kappa agents are labeled.
@@ -387,12 +389,20 @@ class Mixture(snap.SnapShot):
         # consolidate temp_complexes? (use kasnap.consolidate())
         # don't mess up self.complexes, since it is indexed by self.index.
         if sort:
+            # If you plan "continuation runs" using the random number generator state,
+            # do NOT sort the list of complexes, as it governs the heap. This is why
+            # 'sort=False' by default.
             temp_complexes = sorted(self.complexes, key=lambda c: c.size, reverse=True)
         else:
             temp_complexes = self.complexes
         with open(file, "w") as fp:
             s = f"// Snapshot [Event: {ka.system.sim.event}]\n"
             s += f'// "uuid" : "{ka.system.uuid}"\n'
+            if ka.system.monitor.reproducible:
+                # if we want the option of a continuation, we need to supply the local views
+                # and the state of the random number generator
+                s += f'// RG state : {json.dumps(ka.system.sim.rng.bit_generator.state)}\n'
+                s += f'// LV : {json.dumps(self.local_views)}\n'
             s += f'%def: "T0" "{ka.system.sim.time}"\n'
             s += '\n'
             fp.write(s)
@@ -429,33 +439,34 @@ class Mixture(snap.SnapShot):
         info += f'{d1[1:-1]} ... {d2[1:-1]}'
         info += '\n\n'
 
+        form = '1.5E'
         info += f'{"system activities ":>{pp_width}}\n'
-        info += f'{"total system activity":>{pp_width}}: {self.total_activity:1.5E}\n'
-        info += f'{"unimolecular binding activity":>{pp_width}}: {self.unimolecular_binding_activity:1.5E}\n'
-        info += f'{"bond dissociation activity":>{pp_width}}: {self.bond_dissociation_activity:1.5E}\n'
-        info += f'{"bimolecular binding activity":>{pp_width}}: {self.bimolecular_binding_activity:1.5E}\n'
+        info += f'{"total system activity":>{pp_width}}: {self.total_activity:{form}}\n'
+        info += f'{"unimolecular binding activity":>{pp_width}}: {self.unimolecular_binding_activity:{form}}\n'
+        info += f'{"bond dissociation activity":>{pp_width}}: {self.bond_dissociation_activity:{form}}\n'
+        info += f'{"bimolecular binding activity":>{pp_width}}: {self.bimolecular_binding_activity:{form}}\n'
         info += '\n'
         info += f'{"system activities by bond type ":>{pp_width}}\n'
         info += f'{"unimolecular binding activity ":>{pp_width}}\n'
         for bt in ka.system.signature.bond_types:
             s = f'{bt}'
-            info += f'{s:>{pp_width}}: {self.activity_unimolecular_binding[bt]:1.5E}\n'
+            info += f'{s:>{pp_width}}: {self.activity_unimolecular_binding[bt]:{form}}\n'
         info += f'{"bond dissociation activity ":>{pp_width}}\n'
         for bt in ka.system.signature.bond_types:
             s = f'{bt}'
-            info += f'{s:>{pp_width}}: {self.activity_bond_dissociation[bt]:1.5E}\n'
+            info += f'{s:>{pp_width}}: {self.activity_bond_dissociation[bt]:{form}}\n'
         info += f'{"bimolecular binding activity ":>{pp_width}}\n'
         for bt in ka.system.signature.bond_types:
             s = f'{bt}'
-            info += f'{s:>{pp_width}}: {self.activity_bimolecular_binding[bt]:1.5E}\n'
+            info += f'{s:>{pp_width}}: {self.activity_bimolecular_binding[bt]:{form}}\n'
         info += f'{"inflow activity ":>{pp_width}}\n'
         for a in ka.system.inflow_rate:
             s = f'atom type {a}'
-            info += f'{s:>{pp_width}}: {self.activity_inflow[a]:1.5E}\n'
+            info += f'{s:>{pp_width}}: {self.activity_inflow[a]:{form}}\n'
         info += f'{"outflow activity ":>{pp_width}}\n'
         for a in ka.system.outflow_rate:
             s = f'atom type {a}'
-            info += f'{s:>{pp_width}}: {self.activity_outflow[a]:1.5E}\n'
+            info += f'{s:>{pp_width}}: {self.activity_outflow[a]:{form}}\n'
         info += '\n'
 
         reactivity = False
@@ -484,37 +495,4 @@ class Mixture(snap.SnapShot):
 
 
 if __name__ == '__main__':
-    import kainit
-
-    signature = 'A(p[a1.P$m a2.P$m a3.P$m], l[r.A$w], r[l.A]), P(a1[p.A], a2[p.A], a3[p.A], d[d.P$m])'
-    parameters = 'TestData/parameters.txt'
-    kainit.minit(signature=signature, parameter_file=parameters)
-
-    mix = Mixture('TestData/snap__0181.ka')
-    print(f'{mix.number_of_species} complexes')
-    # size distribution
-    dist = mix.get_size_distribution()
-    for item in dist:
-        print(f'size: {item[0]}   count: {item[1]}')
-    print(' ')
-    print(mix.report())
-    print(' ')
-
-    # for c in mix.complexes:
-    #     print(c.kappa_expression())
-    #     print(' ')
-    #     print("free sites")
-    #     for s in c.free_site:
-    #         print(f'{s} -> {c.free_site[s]}')
-    #     print(' ')
-    #     print("bond types")
-    #     n = 0
-    #     for b in c.bond_type:
-    #         print(f'{b} -> {c.bond_type[b]}')
-    #         n += c.bond_type[b]
-    #     if n != len(c.bonds):
-    #         print('ERROR !!')
-    #         sys.exit(-1)
-    #     else:
-    #         print(f'total bonds: {n} of {len(c.bonds)}')
-    #     print(' ')
+    pass

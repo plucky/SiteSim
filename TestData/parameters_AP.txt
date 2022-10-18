@@ -11,25 +11,29 @@
 
 %par: seed = 4711                           // Eau de Cologne
 
-%par: sim_limit = 3 time                    //  {time, event}
-%par: obs_frequency = 0.0001
+%par: reproducible = True                   // add header info to snapshots to enable exact reproducibility
+%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test/init_snap00008.ka
+
+%par: sim_limit = 3 time                    // {time, event}
+%par: obs_frequency = 0.0001                // observation period
+%par: snap_frequency = 0.0001                // snapshot period
 
 //%obs: ! A(s[1]), B(s[2]), S(a[1] b[2])    // a molecule
 //%obs: ! S(a[.] b[.])                      // a molecule
 //%obs: ? S(a[#] b[#])                      // a molecule
-%obs: p maxsize [3]                         // three largest sizes
+%obs: p maxsize [3]                         // n largest sizes
 %obs: b A.l-A.r                             // a bond type
 %obs: b A.p-P.a1                            // a bond type
 %obs: b A.p-P.a2                            // a bond type
 %obs: b A.p-P.a3                            // a bond type
 %obs: b P.d-P.d                             // a bond type
 //%obs: s A.l                               // a free site type
-//%obs: p size [1-20]
+//%obs: p size [1-20]                       // size distribution in range [min-max]
 //%obs: ? S(a[.] b[_])                      // a pattern
 //%obs: ? S(a[.] b[1]), B(s[1])             // a pattern
 
-%rep: report_fn = TestOutput/report.txt
-%rep: output_fn = TestOutput/output.csv
-%rep: snap_root = TestOutput/snap
+%rep: report_fn = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test/report.txt
+%rep: output_fn = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test/output.csv
+%rep: snap_root = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test/snap
 %rep: numbering = serial                    // {serial, event}
 

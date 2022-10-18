@@ -150,39 +150,6 @@ class Parameters:
             else:
                 self.init_agents[a] = int(float(init) * 1.e-9 * self.Avogadro * self.Volume)
 
-    def set_parameters(self, pdict):  # needs updating; currently not used
-        """
-        Set parameters using a dictionary of {keyword: value}.
-        It calls update_parameters() and can be used for resetting parameters.
-        """
-        for keyword in pdict:
-            if keyword == 'Volume':
-                if is_number(pdict['Volume']):
-                    self.Volume = pdict['Volume']
-                else:
-                    if pdict['Volume'] in self.Volume_choices:
-                        self.Volume = self.Volume_choices[pdict['Volume']]
-                    else:
-                        sys.exit(f"No such volume choice: {pdict['Volume']}")
-            elif keyword == 'Kd_weak':
-                self.Kd_weak = pdict['Kd_weak']
-            elif keyword == 'Kd_medium':
-                self.Kd_medium = pdict['Kd_medium']
-            elif keyword == 'Kd_strong':
-                self.Kd_strong = pdict['Kd_strong']
-            elif keyword == 'k_on':
-                self.k_on = pdict['k_on']
-            elif keyword == 'Resize':
-                self.Resize = pdict['Resize']
-            elif keyword == 'RingClosureFactor':
-                self.RingClosureFactor = pdict['RingClosureFactor']
-            elif keyword == 'seed':
-                self.rng_seed = pdict['seed']
-            elif keyword == 'Signature':
-                self.signature_string = pdict['Signature']
-            else:
-                sys.exit(f"Parameters.set_parameters(): No such keyword: {keyword}")
-
     def read_parameters(self, par_file):
         """
         Reads parameters from a file.
@@ -234,12 +201,21 @@ class Parameters:
                                     self.Resize = float(value)
                                 elif name == 'RingClosureFactor':
                                     self.RingClosureFactor = float(value)
+                                elif name == 'initial_mixture':
+                                    ka.system.mixture_file = value.strip()
+                                elif name == 'reproducible':
+                                    if "True" in value or 'true' in value:
+                                        ka.system.monitor.reproducible = True
+                                    else:
+                                        ka.system.monitor.reproducible = False
                                 elif name == 'sim_limit':
                                     match = re.match(r'%par:\s*sim_limit\s*=\s*(\S*)\s*(\S*)\s*', line)
                                     ka.system.sim_limit = float(match.group(1))
                                     ka.system.sim_limit_type = match.group(2)
                                 elif name == 'obs_frequency':
-                                    ka.system.obs_freq = float(value)
+                                    ka.system.monitor.obs_period = float(value)
+                                elif name == 'snap_frequency':
+                                    ka.system.monitor.snap_period = float(value)
                                 elif name == 'seed':
                                     self.rng_seed = int(value)
                                 elif name == 'inflow':
@@ -256,7 +232,7 @@ class Parameters:
                                 self.signature_string = match.group(1).strip()
                         elif match.group(1) == 'obs:':
                             match = re.match(r'%obs: \s*(\S*)\s*([^/]*)/?', line)
-                            ka.system.observable[match.group(1)] += [match.group(2).strip()]
+                            ka.system.monitor.observable[match.group(1)] += [match.group(2).strip()]
                         elif match.group(1) == 'rep:':
                             match = re.match(r'%rep:\s*(.*)\s*=\s*(\S*)\s?', line)
                             if match:
@@ -265,16 +241,17 @@ class Parameters:
                                 if name == 'report_fn':
                                     ka.system.report_file = value
                                 if name == 'output_fn':
-                                    ka.system.obs_file = value
+                                    ka.system.monitor.obs_file_name = value
                                 if name == 'snap_root':
-                                    ka.system.snap_root = value
+                                    ka.system.monitor.snap_root_name = value
                                 if name == 'numbering':
-                                    ka.system.snap_numbering = value
+                                    ka.system.monitor.snap_numbering = value
 
     def report(self, pp_width=40):
         """
         Pretty print the system parameters
         """
+        form = '1.5E'
         info = f"\n{'PARAMETERS '.ljust(70, '-')}\n\n"
 
         # now = datetime.datetime.now()
@@ -283,43 +260,43 @@ class Parameters:
         #
         # info += '\n'
 
-        info += f'{"Avogadro":>{pp_width}}: {self.Avogadro:1.5E}\n'
+        info += f'{"Avogadro":>{pp_width}}: {self.Avogadro:{form}}\n'
         info += f'{"Kd weak":>{pp_width}}: {self.Kd_weak}\n'
         info += f'{"Kd medium":>{pp_width}}: {self.Kd_medium}\n'
         info += f'{"Kd strong":>{pp_width}}: {self.Kd_strong}\n'
-        info += f'{"k_on":>{pp_width}}: {self.k_on:1.3E}\n'
+        info += f'{"k_on":>{pp_width}}: {self.k_on:{form}}\n'
 
         info += '\n'
 
         info += f'{"Resize":>{pp_width}}: {self.Resize}\n'
-        info += f'{"Volume (resized)":>{pp_width}}: {self.Volume:1.3E}\n'
-        info += f'{"RingClosureFactor (resized)":>{pp_width}}: {self.RingClosureFactor:1.3E}\n'
+        info += f'{"Volume (resized)":>{pp_width}}: {self.Volume:{form}}\n'
+        info += f'{"RingClosureFactor (resized)":>{pp_width}}: {self.RingClosureFactor:{form}}\n'
 
         # stochastic rate constants-----------------------------------------------
 
         info += '\n'
 
-        info += f'{"inter-molecular on-rate (s_on)":>{pp_width}}: {self.s_on:1.5E}\n'
-        info += f'{"intra-molecular on-rate (s_ring_on)":>{pp_width}}: {self.s_ring_on:1.5E}\n'
+        info += f'{"inter-molecular on-rate (s_on)":>{pp_width}}: {self.s_on:{form}}\n'
+        info += f'{"intra-molecular on-rate (s_ring_on)":>{pp_width}}: {self.s_ring_on:{form}}\n'
         for bt in ka.system.rc_bond_dissociation:
             text = f'off-rate ({bt[0]}--{bt[1]})'
-            info += f'{text:>{pp_width}}: {ka.system.rc_bond_dissociation[bt]:1.5E}\n'
+            info += f'{text:>{pp_width}}: {ka.system.rc_bond_dissociation[bt]:{form}}\n'
 
         info += '\n'
 
         if ka.system.inflow_rate or ka.system.outflow_rate:
             for at in ka.system.inflow_rate:
                 text = f'inflow rate ({at})'
-                info += f'{text:>{pp_width}}: {ka.system.inflow_rate[at]:1.5E}\n'
+                info += f'{text:>{pp_width}}: {ka.system.inflow_rate[at]:{form}}\n'
             for at in ka.system.outflow_rate:
                 text = f'outflow rate ({at})'
-                info += f'{text:>{pp_width}}: {ka.system.outflow_rate[at]:1.5E}\n'
+                info += f'{text:>{pp_width}}: {ka.system.outflow_rate[at]:{form}}\n'
             info += '\n'
 
         info += f'{"defaults":>{pp_width}}\n'
-        info += f'{"s_off_weak":>{pp_width}}: {self.s_off_weak:1.5E}\n'
-        info += f'{"s_off_medium":>{pp_width}}: {self.s_off_medium:1.5E}\n'
-        info += f'{"s_off_strong":>{pp_width}}: {self.s_off_strong:1.5E}\n'
+        info += f'{"s_off_weak":>{pp_width}}: {self.s_off_weak:{form}}\n'
+        info += f'{"s_off_medium":>{pp_width}}: {self.s_off_medium:{form}}\n'
+        info += f'{"s_off_strong":>{pp_width}}: {self.s_off_strong:{form}}\n'
 
         info += '\n'
 
