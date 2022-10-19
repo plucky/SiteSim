@@ -133,27 +133,8 @@ class CTMC:
         """
         Fast reaction selection using heaps.
         """
-        # The first few choices relate to in/outflow of atoms.
-        # Since there are only a few types, looping is OK.
-        rv = self.rng.uniform(low=0.0, high=self.mix.total_activity)
-        if rv < self.mix.total_inflow:
-            select = 'inflow'
-            for a in self.mix.activity_inflow:
-                if rv < self.mix.activity_inflow[a]:
-                    self.current_reaction =  select, (a, None), (None, None), (None, None)
-                    return
-                else:
-                    rv -= self.mix.activity_inflow[a]
 
-        rv -= self.mix.total_inflow
-        if rv < self.mix.total_outflow:
-            select = 'outflow'
-            for a in self.mix.activity_outflow:
-                if rv < self.mix.activity_outflow[a]:
-                    self.current_reaction =  select, (a, None), (None, None), (None, None)
-                    return
-                else:
-                    rv -= self.mix.activity_outflow[a]
+        rv = self.rng.uniform(low=0.0, high=self.mix.total_activity)
 
         rv -= self.mix.total_outflow
         if rv < self.mix.unimolecular_binding_activity:
@@ -223,9 +204,12 @@ class CTMC:
                     r1 = self.rng.integers(low=0, high=self.mix.total_free_sites[s1])
                     m1 = self.mix.complexes[self.heap['st'][s1].draw_node(r1)]
                     r2 = self.rng.integers(low=0, high=self.mix.total_free_sites[s2] - m1.free_site[s2])
-                    self.mix.change_count(m1, -1, remove=False)  # only temporary!
+                    # temporarily modify the specific heap
+                    self.heap['st'][s2].modify(m1.free_site[s2] * (m1.count - 1), self.mix.index[m1])
+                    # draw the molecule
                     m2 = self.mix.complexes[self.heap['st'][s2].draw_node(r2)]
-                    self.mix.change_count(m1, 1)  # undo!
+                    # undo the mod
+                    self.heap['st'][s2].modify(m1.free_site[s2] * m1.count, self.mix.index[m1])
                     r1 = self.rng.integers(low=0, high=m1.free_site[s1])
                     r2 = self.rng.integers(low=0, high=m2.free_site[s2])
                     name1, site1 = m1.free_site_list[s1][r1]
@@ -234,6 +218,26 @@ class CTMC:
                     return
                 else:
                     rv -= self.mix.activity_bimolecular_binding[bt]
+        # The next choices relate to in/outflow of atoms.
+        # Since there are only a few types, looping is OK.
+        if rv < self.mix.total_inflow:
+            select = 'inflow'
+            for a in self.mix.activity_inflow:
+                if rv < self.mix.activity_inflow[a]:
+                    self.current_reaction =  select, (a, None), (None, None), (None, None)
+                    return
+                else:
+                    rv -= self.mix.activity_inflow[a]
+
+        rv -= self.mix.total_inflow
+        if rv < self.mix.total_outflow:
+            select = 'outflow'
+            for a in self.mix.activity_outflow:
+                if rv < self.mix.activity_outflow[a]:
+                    self.current_reaction =  select, (a, None), (None, None), (None, None)
+                    return
+                else:
+                    rv -= self.mix.activity_outflow[a]
 
     def report(self, pp_width=40):
         form = '1.5E'

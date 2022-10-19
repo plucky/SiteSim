@@ -39,6 +39,8 @@ class Mixture(snap.SnapShot):
     def __init__(self, file=None, system=None, complexes=[]):
         super().__init__(file=file, complexes=complexes, system=system, signature=system.signature)
 
+        self.sys = ka.system
+
         # This is a dictionary version of self.complexes, but keys are canonicalized kappa expressions for fast
         # identification. It adds another "footprint of self.complexes" to the memory requirements. Not a problem.
         self.canonical = {}
@@ -100,13 +102,13 @@ class Mixture(snap.SnapShot):
         """
         Computes the unimolecular reactivity (dissociation and intra-molecular binding) of the mixture.
         """
-        for bt in ka.system.signature.bond_types:
+        for bt in self.sys.signature.bond_types:
             self.activity_unimolecular_binding[bt] = 0.  # activity intra-molecular bond formation
             self.activity_bond_dissociation[bt] = 0.     # activity bond dissociation
             self.total_bond_type[bt] = 0                 # only tracking
 
         for m in self.complexes:
-            for bt in ka.system.signature.bond_types:
+            for bt in self.sys.signature.bond_types:
                 # multiplication with rate constant occurred when creating m
                 self.activity_unimolecular_binding[bt] += (m.binding[bt] * m.count)
                 # multiplication with rate constant occurred when creating m
@@ -118,17 +120,17 @@ class Mixture(snap.SnapShot):
         """
         Computes the bimolecular binding reactivity of the mixture.
         """
-        for bt in ka.system.signature.bond_types:
+        for bt in self.sys.signature.bond_types:
             self.activity_bimolecular_binding[bt] = 0.  # activity inter-molecular bond formation
         # accumulate free_site counts across mixture
-        for st in ka.system.signature.site_types:
+        for st in self.sys.signature.site_types:
             self.total_free_sites[st] = 0
         for m in self.complexes:
             for st in m.free_site:
                 self.total_free_sites[st] += (m.free_site[st] * m.count)
 
         for m in self.complexes:   ### is this correct??
-            for bt in ka.system.signature.bond_types:
+            for bt in self.sys.signature.bond_types:
                 st1, st2 = bt
                 factor = 1.
                 if st1 == st2:  # symmetry correction
@@ -139,23 +141,23 @@ class Mixture(snap.SnapShot):
                 # summing over all inter-molecular bond formation *between* molecular
                 # species m and all others yields (see Overleaf notes for the calculation):
                 a += m.free_site[st1] * m.count * (self.total_free_sites[st2] - m.free_site[st2] * m.count)
-                self.activity_bimolecular_binding[bt] += (a * factor * ka.system.rc_bond_formation_inter)
+                self.activity_bimolecular_binding[bt] += (a * factor * self.sys.rc_bond_formation_inter)
 
     def flow_activity_of_mixture(self):
         """
         Tally agent in- and out-flow activity.
         """
-        for a in ka.system.inflow_rate:
+        for a in self.sys.inflow_rate:
             # inflows are zero-molecular
-            self.activity_inflow[a] = ka.system.inflow_rate[a]
-        if ka.system.outflow_rate:
+            self.activity_inflow[a] = self.sys.inflow_rate[a]
+        if self.sys.outflow_rate:
             for m in self.complexes:  # this is done only once, so we're good with looping
                 if m.size == 1:
                     atom_type = m.agents[next(iter(m.agents))]['info']['type']
                     self.atom_canonical[atom_type] = m
-                    if atom_type in ka.system.outflow_rate:
+                    if atom_type in self.sys.outflow_rate:
                         # outflows are unimolecular
-                        self.activity_outflow[atom_type] = m.count * ka.system.outflow_rate[atom_type]
+                        self.activity_outflow[atom_type] = m.count * self.sys.outflow_rate[atom_type]
 
     def negativeUpdate(self, m):
         """
@@ -173,7 +175,7 @@ class Mixture(snap.SnapShot):
             if st1 != st2:
                 a += m.free_site[st2] * m.free_site[st1] * (m.count - 1)
                 a += m.free_site[st2] * (self.total_free_sites[st1] - m.free_site[st1] * m.count)
-            self.activity_bimolecular_binding[bt] -= a * ka.system.rc_bond_formation_inter
+            self.activity_bimolecular_binding[bt] -= a * self.sys.rc_bond_formation_inter
             # only tracking
             self.total_bond_type[bt] -= m.bond_type[bt]
         # update the total number of free sites per type
@@ -181,10 +183,10 @@ class Mixture(snap.SnapShot):
             self.total_free_sites[st] -= m.free_site[st]
 
         # outflow is restricted to atoms (for now)
-        if ka.system.outflow_rate and m.size == 1:
+        if self.sys.outflow_rate and m.size == 1:
             agent_type = m.agents[next(iter(m.agents))]['info']['type']
-            self.activity_outflow[agent_type] -= ka.system.outflow_rate[agent_type]
-            self.total_outflow -= ka.system.outflow_rate[agent_type]
+            self.activity_outflow[agent_type] -= self.sys.outflow_rate[agent_type]
+            self.total_outflow -= self.sys.outflow_rate[agent_type]
 
     def positiveUpdate(self, m):
         """
@@ -204,15 +206,15 @@ class Mixture(snap.SnapShot):
             if st1 != st2:
                 a += m.free_site[st2] * m.free_site[st1] * (m.count - 1)
                 a += m.free_site[st2] * (self.total_free_sites[st1] - m.free_site[st1] * m.count)
-            self.activity_bimolecular_binding[bt] += a * ka.system.rc_bond_formation_inter
+            self.activity_bimolecular_binding[bt] += a * self.sys.rc_bond_formation_inter
             # only tracking
             self.total_bond_type[bt] += m.bond_type[bt]
 
         # outflow is restricted to atoms (for now)
-        if ka.system.outflow_rate and m.size == 1:
+        if self.sys.outflow_rate and m.size == 1:
             agent_type = m.agents[next(iter(m.agents))]['info']['type']
-            self.activity_outflow[agent_type] += ka.system.outflow_rate[agent_type]
-            self.total_outflow += ka.system.outflow_rate[agent_type]
+            self.activity_outflow[agent_type] += self.sys.outflow_rate[agent_type]
+            self.total_outflow += self.sys.outflow_rate[agent_type]
 
     def update_overall_activities(self):
         """
@@ -225,7 +227,7 @@ class Mixture(snap.SnapShot):
         self.unimolecular_binding_activity = 0.
         self.bond_dissociation_activity = 0.
         self.bimolecular_binding_activity = 0.
-        for bt in ka.system.signature.bond_types:
+        for bt in self.sys.signature.bond_types:
             self.unimolecular_binding_activity += self.activity_unimolecular_binding[bt]
             self.bond_dissociation_activity += self.activity_bond_dissociation[bt]
             self.bimolecular_binding_activity += self.activity_bimolecular_binding[bt]
@@ -235,10 +237,10 @@ class Mixture(snap.SnapShot):
 
         self.total_inflow = 0.
         self.total_outflow = 0.
-        for a in ka.system.inflow_rate:
+        for a in self.sys.inflow_rate:
             # inflows are zero-molecular
             self.total_inflow += self.activity_inflow[a]
-        for a in ka.system.outflow_rate:
+        for a in self.sys.outflow_rate:
             # outflows are unimolecular
             self.total_outflow += self.activity_outflow[a]
 
@@ -263,7 +265,7 @@ class Mixture(snap.SnapShot):
         # update the index of the species we moved.
         self.index[m_last] = self.index[m]
 
-        if ka.system.canonicalize:
+        if self.sys.canonicalize:
             del self.canonical[m.canonical]
             if m.size == 1:
                 atom_type = m.agents[next(iter(m.agents))]['info']['type']
@@ -277,8 +279,8 @@ class Mixture(snap.SnapShot):
         self.number_of_species -= 1
         # update the heap (using the index prior to deletion in complexes[])
         for t in ['bt+', 'bt-', 'st']:
-            for k in ka.system.sim.heap[t]:
-                ka.system.sim.heap[t][k].delete(old_index)
+            for k in self.sys.sim.heap[t]:
+                self.sys.sim.heap[t][k].delete(old_index)
 
     def add_molecular_species(self, m):
         """
@@ -287,7 +289,7 @@ class Mixture(snap.SnapShot):
         self.index[m] = self.number_of_species
         self.complexes.append(m)
 
-        if ka.system.canonicalize:
+        if self.sys.canonicalize:
             self.canonical[m.canonical] = m
             if m.size == 1:
                 atom_type = m.agents[next(iter(m.agents))]['info']['type']
@@ -295,15 +297,15 @@ class Mixture(snap.SnapShot):
 
         self.number_of_species += 1
         # update the heap
-        for st in ka.system.sim.heap['st']:
+        for st in self.sys.sim.heap['st']:
             data_item = m.free_site[st] * m.count
-            ka.system.sim.heap['st'][st].insert(data_item)
-        for bt in ka.system.sim.heap['bt+']:
+            self.sys.sim.heap['st'][st].insert(data_item)
+        for bt in self.sys.sim.heap['bt+']:
             data_item = m.binding[bt] * m.count
-            ka.system.sim.heap['bt+'][bt].insert(data_item)
-        for bt in ka.system.sim.heap['bt-']:
+            self.sys.sim.heap['bt+'][bt].insert(data_item)
+        for bt in self.sys.sim.heap['bt-']:
             data_item = m.unbinding[bt] * m.count
-            ka.system.sim.heap['bt-'][bt].insert(data_item)
+            self.sys.sim.heap['bt-'][bt].insert(data_item)
 
     def change_count(self, m, num, remove=True):
         """
@@ -315,31 +317,31 @@ class Mixture(snap.SnapShot):
             self.remove_molecular_species(m)
         else:
             # update the heap
-            hp = ka.system.sim.heap['st']
+            hp = self.sys.sim.heap['st']
             for st in hp:
                 hp[st].modify(m.free_site[st] * m.count, self.index[m])
-            hp = ka.system.sim.heap['bt+']
+            hp = self.sys.sim.heap['bt+']
             for bt in hp:
                 hp[bt].modify(m.binding[bt] * m.count, self.index[m])
-            hp = ka.system.sim.heap['bt-']
+            hp = self.sys.sim.heap['bt-']
             for bt in hp:
                 hp[bt].modify(m.unbinding[bt] * m.count, self.index[m])
 
     def update_mixture(self, new):
         # add the reaction product 'm' to the mixture
         found = False
-        if ka.system.canonicalize:
+        if self.sys.canonicalize:
             if new.canonical in self.canonical:
                 m = self.canonical[new.canonical]
                 self.change_count(m, 1)
                 found = True
         else:
-            if ka.system.consolidate:
+            if self.sys.consolidate:
                 # check if the new molecule belongs to an already existing species
                 for m in self.complexes:
                     if m.size == m.size:
                         if m.sum_formula == new.sum_formula:
-                            if ka.system.sgm.isomorphic(m, new):
+                            if self.sys.sgm.isomorphic(m, new):
                                 # the molecular species exists; add the new molecule instance to it
                                 self.change_count(m, 1)
                                 found = True
@@ -364,12 +366,12 @@ class Mixture(snap.SnapShot):
                 if m1.size == m2.size:
                     if m1.sum_formula == m2.sum_formula:
                         exists = False
-                        if ka.system.canonicalize:
+                        if self.sys.canonicalize:
                             if m1.canonical == m2.canonical:
                                 # the molecular species exists
                                 exists = True
                         else:
-                            if ka.system.sim.SGM.isomorphic(m1, m2):
+                            if self.sys.sim.SGM.isomorphic(m1, m2):
                                 # the molecular species exists
                                 exists = True
                         if exists:
@@ -396,14 +398,14 @@ class Mixture(snap.SnapShot):
         else:
             temp_complexes = self.complexes
         with open(file, "w") as fp:
-            s = f"// Snapshot [Event: {ka.system.sim.event}]\n"
-            s += f'// "uuid" : "{ka.system.uuid}"\n'
-            if ka.system.monitor.reproducible:
+            s = f"// Snapshot [Event: {self.sys.sim.event}]\n"
+            s += f'// "uuid" : "{self.sys.uuid}"\n'
+            if self.sys.monitor.reproducible:
                 # if we want the option of a continuation, we need to supply the local views
                 # and the state of the random number generator
-                s += f'// RG state : {json.dumps(ka.system.sim.rng.bit_generator.state)}\n'
+                s += f'// RG state : {json.dumps(self.sys.sim.rng.bit_generator.state)}\n'
                 s += f'// LV : {json.dumps(self.local_views)}\n'
-            s += f'%def: "T0" "{ka.system.sim.time}"\n'
+            s += f'%def: "T0" "{self.sys.sim.time}"\n'
             s += '\n'
             fp.write(s)
             for m in temp_complexes:
@@ -427,7 +429,7 @@ class Mixture(snap.SnapShot):
         info += f'{"agents":>20}: {s}\n'
         info += f'{"molecules":>20}: {m}\n'
 
-        if ka.system.db_level == 1:
+        if self.sys.db_level == 1:
             info += f'{"free sites":>20}:\n'
             for st in self.total_free_sites:
                 info += f'{st:>20}: {self.total_free_sites[st]}\n'
@@ -448,34 +450,34 @@ class Mixture(snap.SnapShot):
         info += '\n'
         info += f'{"system activities by bond type ":>{pp_width}}\n'
         info += f'{"unimolecular binding activity ":>{pp_width}}\n'
-        for bt in ka.system.signature.bond_types:
+        for bt in self.sys.signature.bond_types:
             s = f'{bt}'
             info += f'{s:>{pp_width}}: {self.activity_unimolecular_binding[bt]:{form}}\n'
         info += f'{"bond dissociation activity ":>{pp_width}}\n'
-        for bt in ka.system.signature.bond_types:
+        for bt in self.sys.signature.bond_types:
             s = f'{bt}'
             info += f'{s:>{pp_width}}: {self.activity_bond_dissociation[bt]:{form}}\n'
         info += f'{"bimolecular binding activity ":>{pp_width}}\n'
-        for bt in ka.system.signature.bond_types:
+        for bt in self.sys.signature.bond_types:
             s = f'{bt}'
             info += f'{s:>{pp_width}}: {self.activity_bimolecular_binding[bt]:{form}}\n'
         info += f'{"inflow activity ":>{pp_width}}\n'
-        for a in ka.system.inflow_rate:
+        for a in self.sys.inflow_rate:
             s = f'atom type {a}'
             info += f'{s:>{pp_width}}: {self.activity_inflow[a]:{form}}\n'
         info += f'{"outflow activity ":>{pp_width}}\n'
-        for a in ka.system.outflow_rate:
+        for a in self.sys.outflow_rate:
             s = f'atom type {a}'
             info += f'{s:>{pp_width}}: {self.activity_outflow[a]:{form}}\n'
         info += '\n'
 
         reactivity = False
         show_bonds = False
-        if ka.system.db_level > 0:
-            if ka.system.db_level == 1:
+        if self.sys.db_level > 0:
+            if self.sys.db_level == 1:
                 reactivity = True
                 show_bonds = False
-            elif ka.system.db_level == 2:
+            elif self.sys.db_level == 2:
                 reactivity = True
                 show_bonds = True
             temp = sorted(self.complexes, key=lambda c: c.size, reverse=True)
