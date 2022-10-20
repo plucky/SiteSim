@@ -23,8 +23,6 @@ def main_loop():
     system.monitor.observe()
     system.monitor.snapshot()
 
-    skip = True
-
     # The core loop is slightly different for time-based vs event-based observations.
     # In the time-based case, the observation is a non-reactive event, whereas in the
     # event-based case, a reaction event is carried out in addition to the observation.

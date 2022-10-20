@@ -9,14 +9,15 @@
 %par: RingClosureFactor = 1.e5
 %par: Resize = 1.                           // "rescale" the system volume
 
-%par: seed = 4711                           // Eau de Cologne
+%par: seed = 5056903829                     // call me
 
 %par: reproducible = True                   // add header info to snapshots to enable exact reproducibility
-%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test/init_snap00008.ka
+//%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test/init_snap.ka
 
 %par: sim_limit = 3 time                    // {time, event}
-%par: obs_frequency = 0.0001                // observation period
-%par: snap_frequency = 0.0001                // snapshot period
+//%par: sim_limit = 0.01 time               // {time, event}
+%par: obs_frequency = 0.001                 // observation period
+%par: snap_frequency = 0.01                 // snapshot period
 
 //%obs: ! A(s[1]), B(s[2]), S(a[1] b[2])    // a molecule
 //%obs: ! S(a[.] b[.])                      // a molecule

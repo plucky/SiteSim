@@ -93,8 +93,24 @@ class Monitor:
         self.observable['b'] = internal
 
         # site type observables
+        internal = []
         for item in self.observable['s']:
             info += f'{item},'
+        self.observable['s'] = internal
+
+        # set up bond type observables for maximer
+        internal = []
+        for item in self.observable['mb']:
+            temp = item.split('-')
+            internal.append(tuple(sorted(temp)))
+            info += f'm:{item},'
+        self.observable['mb'] = internal
+
+        # site type observables for maximer
+        internal = []
+        for item in self.observable['ms']:
+            info += f'm:{item},'
+        self.observable['ms'] = internal
 
         # size distribution observables
         for item in self.observable['p']:
@@ -154,12 +170,22 @@ class Monitor:
         for item in self.observable['s']:
             info += f'{ka.system.mixture.total_free_sites[item]}, '
 
+        sorted_complexes = []
+        if self.observable['p'] or self.observable['mb'] or self.observable['ms']:
+            sorted_complexes = sorted(ka.system.mixture.complexes, key=lambda x: x.size, reverse=True)
+
+        for item in self.observable['mb']:
+            info += f'{sorted_complexes[0].bond_type[item]}, '
+
+        for item in self.observable['ms']:
+            info += f'{sorted_complexes[0].free_site[item]}, '
+
         for item in self.observable['p']:
             if 'size' in item:  # size distribution
                 if 'maxsize' in item:
                     # determine max size count
                     i = 1
-                    for m in sorted(ka.system.mixture.complexes, key=lambda x: x.size, reverse=True):
+                    for m in sorted_complexes:
                         info += f'{m.size}, '
                         i += 1
                         if i > self.max_size_ranks:

@@ -114,7 +114,7 @@ class Mixture(snap.SnapShot):
                 # multiplication with rate constant occurred when creating m
                 self.activity_bond_dissociation[bt] += (m.unbinding[bt] * m.count)
                 # tracking
-                self.total_bond_type[bt] += m.bond_type[bt]
+                self.total_bond_type[bt] += (m.bond_type[bt] * m.count)
 
     def bimolecular_reactivity_of_mixture(self):
         """
@@ -129,7 +129,7 @@ class Mixture(snap.SnapShot):
             for st in m.free_site:
                 self.total_free_sites[st] += (m.free_site[st] * m.count)
 
-        for m in self.complexes:   ### is this correct??
+        for m in self.complexes:
             for bt in self.sys.signature.bond_types:
                 st1, st2 = bt
                 factor = 1.

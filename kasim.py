@@ -136,7 +136,6 @@ class CTMC:
 
         rv = self.rng.uniform(low=0.0, high=self.mix.total_activity)
 
-        rv -= self.mix.total_outflow
         if rv < self.mix.unimolecular_binding_activity:
             # channel is a unimolecular binding event
             select = 'ub'
@@ -169,7 +168,7 @@ class CTMC:
                         else:
                             r2 = self.rng.integers(low=0, high=m.free_site[s2])
                             name2, site2 = m.free_site_list[s2][r2]
-                    self.current_reaction =  select, (m, None), (name1, site1), (name2, site2)
+                    self.current_reaction = select, (m, None), (name1, site1), (name2, site2)
                     return
                 else:
                     rv -= self.mix.activity_unimolecular_binding[bt]
@@ -218,9 +217,10 @@ class CTMC:
                     return
                 else:
                     rv -= self.mix.activity_bimolecular_binding[bt]
-        # The next choices relate to in/outflow of atoms.
-        # Since there are only a few types, looping is OK.
+
+        rv -= self.mix.bimolecular_binding_activity
         if rv < self.mix.total_inflow:
+            # Inflow of atoms. Since there are only a few types, looping is OK.
             select = 'inflow'
             for a in self.mix.activity_inflow:
                 if rv < self.mix.activity_inflow[a]:
@@ -231,6 +231,7 @@ class CTMC:
 
         rv -= self.mix.total_inflow
         if rv < self.mix.total_outflow:
+            # Outflow of atoms. Since there are only a few types, looping is OK.
             select = 'outflow'
             for a in self.mix.activity_outflow:
                 if rv < self.mix.activity_outflow[a]:
