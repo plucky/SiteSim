@@ -10,7 +10,7 @@ import time
 
 def main_loop():
 
-    system = kainit.initialize(parameter_file='parameters_AP.txt')
+    system = kainit.initialize(parameter_file='TestData/parameters_AP.txt')
     simulator = system.sim
     monitor = system.monitor
     
@@ -40,10 +40,13 @@ def main_loop():
             if simulator.time >= monitor.snap_time:
                 simulator.time = monitor.snap_time
                 monitor.snapshot()
+                print(f'events: {simulator.event}')
+                print(f'cpu: {time.process_time()}\n')
                 skip = True
             if not skip:
                 simulator.event += 1
                 simulator.select_reaction()
+                # print(simulator.event)
                 simulator.execute_reaction()
     else:
         while simulator.event < system.sim_limit:

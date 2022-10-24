@@ -15,7 +15,7 @@ class Monitor:
 
         self.obs_period = 0.
         # observable types: ! -> molecule, ? -> pattern, b -> bond, s -> free site, p -> property
-        self.observable = {'!': [], '?': [], 'b': [], 's': [], 'p': []}
+        self.observable = {'!': [], '?': [], 'b': [], 's': [], 'mb': [], 'ms': [], 'p': []}
 
         self.obs_file_name = ''            # observation file (typically a csv)
         self.snap_root_name = ''           # root fn of snapshots

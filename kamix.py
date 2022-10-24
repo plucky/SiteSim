@@ -23,7 +23,7 @@ def create_atoms(init_counts, signature=None, system=None):
         count = init_counts[agent]
         if count:
             atom = kappa.parser(signature.default_agent_state[agent])
-            kappa_atom = kamol.KappaMolecule(atom, count=count, system=system, sig=signature, views=local_views)
+            kappa_atom = kamol.KappaMolecule(atom, count=count, system=system, sig=signature, s_views=local_views)
             complexes.append(kappa_atom)
     return 0, None, None, 0., complexes, local_views
 
@@ -65,6 +65,7 @@ class Mixture(snap.SnapShot):
         for (i, mol) in enumerate(self.complexes):
             self.index[mol] = i  # indices start with 0
             self.canonical[mol.canonical] = mol
+            kamol.sort_site_and_bond_lists(mol)  # to sync with list states at time of snapshot
 
         # ------ only tracking
         self.total_bond_type = {}
@@ -258,12 +259,12 @@ class Mixture(snap.SnapShot):
         # structure to build and maintain a heap on top.
 
         # save the index of the molecule to be deleted; we need it below to update the heap.
-        old_index = self.index[m]
+        remove = self.index[m]
         # move the last molecular species to the location of the one being deleted.
         m_last = self.complexes[-1]
-        self.complexes[self.index[m]] = m_last
+        self.complexes[remove] = m_last
         # update the index of the species we moved.
-        self.index[m_last] = self.index[m]
+        self.index[m_last] = remove
 
         if self.sys.canonicalize:
             del self.canonical[m.canonical]
@@ -280,7 +281,7 @@ class Mixture(snap.SnapShot):
         # update the heap (using the index prior to deletion in complexes[])
         for t in ['bt+', 'bt-', 'st']:
             for k in self.sys.sim.heap[t]:
-                self.sys.sim.heap[t][k].delete(old_index)
+                self.sys.sim.heap[t][k].delete(remove)
 
     def add_molecular_species(self, m):
         """
@@ -388,7 +389,12 @@ class Mixture(snap.SnapShot):
         'label' indicates whether kappa agents are labeled.
         'pretty' pretty-prints expressions to constant width
         """
-        # consolidate temp_complexes? (use kasnap.consolidate())
+        # This synchronizes bond and site lists of each complex with a snapshot moment,
+        # ensuring that we can read in the snapshot and run a simulation as a continuation,
+        # as if we never interrupted.
+        if self.sys.monitor.reproducible:
+            for m in self.complexes:
+                kamol.sort_site_and_bond_lists(m)
         # don't mess up self.complexes, since it is indexed by self.index.
         if sort:
             # If you plan "continuation runs" using the random number generator state,

@@ -91,7 +91,7 @@ def select_reaction_basic(self):
                         # bt is (agent_type_1.site_1), (agent_type_2.site_2)
                         # choose a bond of this type
                         r = ka.system.sim.rng.integers(low=0, high=m.bond_type[bt])
-                        x, y = m.bond_type_list[bt][r]
+                        x, y = m.bond_list[bt][r]
                         self.current_reaction =  select, (m, None), x, y
                         return
                     else:

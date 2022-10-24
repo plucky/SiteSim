@@ -12,12 +12,12 @@
 %par: seed = 5056903829                     // call me
 
 %par: reproducible = True                   // add header info to snapshots to enable exact reproducibility
-//%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test/init_snap.ka
+%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test2/snap1.ka
 
-%par: sim_limit = 3 time                    // {time, event}
-//%par: sim_limit = 0.01 time               // {time, event}
+//%par: sim_limit = 3 time                  // {time, event}
+%par: sim_limit = 0.02 time                 // {time, event}
 %par: obs_frequency = 0.001                 // observation period
-%par: snap_frequency = 0.01                 // snapshot period
+%par: snap_frequency = 0.02                 // snapshot period
 
 //%obs: ! A(s[1]), B(s[2]), S(a[1] b[2])    // a molecule
 //%obs: ! S(a[.] b[.])                      // a molecule

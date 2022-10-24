@@ -1,6 +1,6 @@
 # Walter Fontana, 2022
-""""
-This module defines the heap for more efficient reaction selection.
+"""
+This module defines a 'heap' structure for more efficient reaction selection.
 """
 
 # This is an adaptation of an implementation provided by Rolf Fagerberg (SDU, Odense, Denmark).

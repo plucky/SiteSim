@@ -45,9 +45,8 @@ def components(kappaMol, traverse='bfs'):
                             visited.add(neighbor)
                             queue.append(neighbor)
     # DFS with stack
-    # Maybe use disjoint-sets data approach?
     elif traverse == 'dfs':
-        stack = deque()  # [1st, 2nd, 3rd, 4th, ...]  add via append(); remove bia pop()
+        stack = deque()  # [1st, 2nd, 3rd, 4th, ...]  add via append(); remove via pop()
         for node in kappaMol.agents:
             if node not in visited:
                 if nc == 1:
@@ -73,6 +72,39 @@ def components(kappaMol, traverse='bfs'):
         return [agents, kappaMol.agents]  # agent dictionaries, one for each component
 
 
+def local_view(name, agents, bond_sep='@'):
+    """
+    Determine the local view of 'name' in 'agents'.
+    """
+    lv = []
+    iface = agents[name]['iface']
+    for s in iface:
+        view = ''
+        b = iface[s]['bond']
+        if b != '.' and b != '#':
+            other_name, other_s = b.split(bond_sep)
+            other_type = agents[other_name]['info']['type']
+            view += f'[{other_type}.{other_s}]'
+        else:
+            view += f'[{b}]'
+        # skip the state in this specific context
+        # view += '{' + f"{iface[s]['state']}" + '}'
+        lv.append((s, view))
+    local = ''
+    for site_view in [f"{s}{view} " for (s, view) in sorted(lv)]:
+        local += site_view
+    # this is the local view of agent 'name'
+    loc_view = agents[name]['info']['type'] + '(' + local[:-1] + ')'
+
+    # update the local_views at the systems level, if needed
+    mix = ka.system.mixture
+    if loc_view not in mix.local_views:
+        running_id = mix.local_views[next(reversed(mix.local_views))]
+        mix.local_views[loc_view] = running_id + 1
+
+    return loc_view
+
+
 def dissociate_bond(A, port1, port2):
     """
     Remove the bond (port1, port2) within KappaMolecule 'A'. (port1, port2) is a standardized representation
@@ -84,21 +116,30 @@ def dissociate_bond(A, port1, port2):
     # break the bond
     A.agents[a_agent]['iface'][a_site]['bond'] = '.'
     A.agents[b_agent]['iface'][b_site]['bond'] = '.'
-    # update adjacency (will only remove one instance in case there are multiple)
-    A.adjacency[a_agent].remove(b_agent)
-    A.adjacency[b_agent].remove(a_agent)
+    # update adjacency
+    # Using remove, eg A.adjacency[a_agent].remove(b_agent), is correct, but can result in a different
+    # list sequence compared with a de novo construction, such as when reading in a snapshot.
+    # To ensure reproducibility I avoid 'remove' here for now; it's also faster.
+    iface = A.agents[a_agent]['iface']
+    A.adjacency[a_agent] = [iface[s1]['bond'].split(A.bond_sep)[0] for s1 in iface if iface[s1]['bond'] != '.']
+    iface = A.agents[b_agent]['iface']
+    A.adjacency[b_agent] = [iface[s1]['bond'].split(A.bond_sep)[0] for s1 in iface if iface[s1]['bond'] != '.']
+
+    # adjust the local views after bond loss
+    A.agents[a_agent]['local_view'] = local_view(a_agent, A.agents)
+    A.agents[b_agent]['local_view'] = local_view(b_agent, A.agents)
 
     # check for connectedness
-    component_agents = components(A, traverse='bfs')
+    # dfs seems a tad bit faster than bfs when graphs are lightly connected;
+    # need to check behavior for large densely connected aggregates
+    component_agents = components(A, traverse='dfs')
 
     nc = len(component_agents)
     if nc == 2:
-        # a fission has occurred
-        # We create KappaMolecules from the debris.
-
-        # We create new KappaMolecules reusing the fragments from the old; id_shift = 0 by default.
-        B = kamol.KappaMolecule(component_agents[0], count=0, system=ka.system)
-        C = kamol.KappaMolecule(component_agents[1], count=0, system=ka.system)
+        # A fission has occurred. We create KappaMolecules reusing the fragments from the old;
+        # id_shift = 0 by default.
+        B = kamol.KappaMolecule(component_agents[0], count=0, system=ka.system, l_views=True)
+        C = kamol.KappaMolecule(component_agents[1], count=0, system=ka.system, l_views=True)
         return 2, [B, C]
 
     else:
@@ -110,46 +151,54 @@ def dissociate_bond(A, port1, port2):
         # standardize and update the bond *types*; labels don't matter
         b = sorted([port1, port2], key=lambda x: (alphanum_key(x[0]), alphanum_key(x[0])))
         ta, tb = kamol.bond2type(tuple(b))
+        # Delete the bond from the bond list
+        # This rigamarole is needed to make removal from a list O(1) rather than O(n).
+        # We cannot use a dictionary, because in select_reaction() we need to randomly choose
+        # from the available bonds, which is best done using a list... C'est la vie.
+        remove = A.bond_list_idx[(ta, tb)][(port1, port2)]
+        last = A.bond_list[(ta, tb)][-1]
+        A.bond_list[(ta, tb)][remove] = last
+        A.bond_list_idx[(ta, tb)][last] = remove
+        A.bond_list[(ta, tb)].pop()
+        A.bond_list_idx[(ta, tb)].pop((port1, port2))   # It's a dictionary, thus O(1)
         A.bond_type[(ta, tb)] -= 1
-        A.bond_type_list[(ta, tb)].remove((port1, port2))
         # update degree
         A.agents[a_agent]['info']['degree'] -= 1
         A.agents[b_agent]['info']['degree'] -= 1
         # update free sites
         site1_type = ''.join([re.sub(r'.\d+.', '', a_agent), '.', a_site])
         site2_type = ''.join([re.sub(r'.\d+.', '', b_agent), '.', b_site])
+        A.free_site_list[site1_type].append(port1)
+        A.free_site_list[site2_type].append(port2)
+        A.free_site_list_idx[site1_type][port1] = A.free_site[site1_type]
         A.free_site[site1_type] += 1
-        A.free_site_list[site1_type] += [port1]
-        A.free_site_list[site1_type].sort(key=lambda x: alphanum_key(x[0]))
+        A.free_site_list_idx[site2_type][port2] = A.free_site[site2_type]
         A.free_site[site2_type] += 1
-        A.free_site_list[site2_type] += [port2]
-        A.free_site_list[site2_type].sort(key=lambda x: alphanum_key(x[0]))
+
+        # kamol.sort_site_and_bond_lists(A)
+
         # update the agent self-binding counts
+        iface_a = A.agents[a_agent]['iface']
+        iface_b = A.agents[b_agent]['iface']
         for bt in A.signature.bond_types:
             st1, st2 = bt
             if st1 != st2:
                 at1, s1 = st1.split('.')
                 at2, s2 = st2.split('.')
-                if st1 == site1_type and s2 in A.agents[a_agent]['iface']:
-                    if A.agents[a_agent]['iface'][s2]['bond'] == '.':
+                if st1 == site1_type and s2 in iface_a:
+                    if iface_a[s2]['bond'] == '.':
                         A.agent_self_binding[bt] += 1
-                if st2 == site1_type and s1 in A.agents[a_agent]['iface']:
-                    if A.agents[a_agent]['iface'][s1]['bond'] == '.':
+                if st2 == site1_type and s1 in iface_a:
+                    if iface_a[s1]['bond'] == '.':
                         A.agent_self_binding[bt] += 1
-                if st1 == site2_type and s2 in A.agents[b_agent]['iface']:
-                    if A.agents[b_agent]['iface'][s2]['bond'] == '.':
+                if st1 == site2_type and s2 in iface_b:
+                    if iface_b[s2]['bond'] == '.':
                         A.agent_self_binding[bt] += 1
-                if st2 == site2_type and s1 in A.agents[b_agent]['iface']:
-                    if A.agents[b_agent]['iface'][s1]['bond'] == '.':
+                if st2 == site2_type and s1 in iface_b:
+                    if iface_b[s1]['bond'] == '.':
                         A.agent_self_binding[bt] += 1
         A.label_counter = int(kamol.get_identifier(next(reversed(A.agents)), delimiters=A.id_sep)[1])
-        # size
         A.size = len(A.agents)
-        # get the composition
-        A.get_composition()
-        A.rarest_type = next(iter(A.composition))
-        # make the adjacency lists. This should be updated more efficiently than a de novo construction...
-        A.make_adjacency_lists()
 
         if A.nav:
             # get the type lists for matching
@@ -157,13 +206,20 @@ def dissociate_bond(A, port1, port2):
             for at in A.composition:
                 A.type_slice.extend([[name for name in A.agents if A.agents[name]['info']['type'] == at]])
             A.embedding_anchor = A.type_slice[0][0]
-            # update navigation lists
-            # we should not delete the entry if there is a second link
+            # update navigation lists; we should not delete the entry if there is a second link
             A.make_navigation_list()
 
         if A.canon:
-            # requires adjacency list
-            A.get_local_views()
+            lva = A.agents[a_agent]['local_view']
+            if lva in A.local_views:
+                A.local_views[lva].append(a_agent)
+            else:
+                A.local_views[lva] = [a_agent]
+            lvb = A.agents[b_agent]['local_view']
+            if lvb in A.local_views:
+                A.local_views[lvb].append(b_agent)
+            else:
+                A.local_views[lvb] = [b_agent]
             A.canonical = A.canonicalize()
 
         # calculate reaction propensities
@@ -190,46 +246,79 @@ def make_bond(A, B, A_port, B_port):
         A.agents.update(B.agents)
         # update main lists and dictionaries
         for bt in B.bond_type:
-            A.bond_type[bt] += B.bond_type[bt]
-            A.bond_type_list[bt].extend(B.bond_type_list[bt])
+            if B.bond_type[bt]:
+                A.bond_type[bt] += B.bond_type[bt]
+                n = len(A.bond_list[bt])
+                for b in B.bond_list_idx[bt]:
+                    B.bond_list_idx[bt][b] += n
+                A.bond_list_idx[bt] = {**A.bond_list_idx[bt], **B.bond_list_idx[bt]}
+                A.bond_list[bt].extend(B.bond_list[bt])
             # Further down, we will correct for a potential decrease
             # in self-binding due to the new bond.
             A.agent_self_binding[bt] += B.agent_self_binding[bt]
         for st in B.free_site:
-            A.free_site[st] += B.free_site[st]
-            # does not need sorting, because we shifted the labels of B-agents
-            A.free_site_list[st].extend(B.free_site_list[st])
+            if B.free_site[st]:
+                A.free_site[st] += B.free_site[st]
+                n = len(A.free_site_list[st])
+                for s in B.free_site_list_idx[st]:
+                    B.free_site_list_idx[st][s] += n
+                A.free_site_list_idx[st] = {**A.free_site_list_idx[st], **B.free_site_list_idx[st]}
+                A.free_site_list[st].extend(B.free_site_list[st])
         A.bonds.update(B.bonds)
         # A.adjacency.update(B.adjacency)
+        A.adjacency = {**A.adjacency, **B.adjacency}
+        # get the composition
+        A.get_composition()
+        A.rarest_type = next(iter(A.composition))
         if A.nav:
             A.navigation.update(B.navigation)
-        # at this point we can delete the reference B
-        # del B
 
     # make the bond
-    A.agents[a_agent]['iface'][a_site]['bond'] = ''.join([b_agent, A.bond_sep, b_site])
-    A.agents[b_agent]['iface'][b_site]['bond'] = ''.join([a_agent, A.bond_sep, a_site])
-
+    iface_a = A.agents[a_agent]['iface']
+    iface_b = A.agents[b_agent]['iface']
+    iface_a[a_site]['bond'] = ''.join([b_agent, A.bond_sep, b_site])
+    iface_b[b_site]['bond'] = ''.join([a_agent, A.bond_sep, a_site])
+    # update adjacency
+    A.adjacency[a_agent] = [iface_a[s1]['bond'].split(A.bond_sep)[0] for s1 in iface_a if iface_a[s1]['bond'] != '.']
+    A.adjacency[b_agent] = [iface_b[s1]['bond'].split(A.bond_sep)[0] for s1 in iface_b if iface_b[s1]['bond'] != '.']
+    # adjust the local views after bond loss
+    A.agents[a_agent]['local_view'] = local_view(a_agent, A.agents)
+    A.agents[b_agent]['local_view'] = local_view(b_agent, A.agents)
     # standardize the bond
     b = sorted([A_port, B_port], key=lambda x: (alphanum_key(x[0]), alphanum_key(x[1])))
     b = tuple(b)
-    # update the bond dict
+    # update the bond list
     A.bonds[b] = 1
     (ta, tb) = kamol.bond2type(b)
+    A.bond_list[(ta, tb)].append(b)
+    A.bond_list_idx[(ta, tb)][b] = A.bond_type[(ta, tb)]
     A.bond_type[(ta, tb)] += 1
-    A.bond_type_list[(ta, tb)] += [b]
-    # keep sorted as in KappaMolecule
-    A.bond_type_list[(ta, tb)].sort(key=lambda x: (alphanum_key(x[0][0]), alphanum_key(x[0][1])))
     # update degree
     A.agents[a_agent]['info']['degree'] += 1
     A.agents[b_agent]['info']['degree'] += 1
     # update free sites
     a_site_type = ''.join([re.sub(r'.\d+.', '', a_agent), '.', a_site])
     b_site_type = ''.join([re.sub(r'.\d+.', '', b_agent), '.', b_site])
+    # Remove the newly freed sites from the site list
+    # This rigamarole is needed to make removal from a list O(1) rather than O(n).
+    # We cannot use a dictionary, because in select_reaction() we need to randomly choose
+    # from the available sites, which is best done using a list... Mais oui.
+    remove = A.free_site_list_idx[a_site_type][A_port]
+    last = A.free_site_list[a_site_type][-1]
+    A.free_site_list[a_site_type][remove] = last
+    A.free_site_list_idx[a_site_type][last] = remove
+    A.free_site_list[a_site_type].pop()
+    A.free_site_list_idx[a_site_type].pop(A_port)  # It's a dictionary, thus O(1)
     A.free_site[a_site_type] -= 1
-    A.free_site_list[a_site_type].remove(A_port)
+    remove = A.free_site_list_idx[b_site_type][B_port]
+    last = A.free_site_list[b_site_type][-1]
+    A.free_site_list[b_site_type][remove] = last
+    A.free_site_list_idx[b_site_type][last] = remove
+    A.free_site_list[b_site_type].pop()
+    A.free_site_list_idx[b_site_type].pop(B_port)  # It's a dictionary, thus O(1)
     A.free_site[b_site_type] -= 1
-    A.free_site_list[b_site_type].remove(B_port)
+
+    # kamol.sort_site_and_bond_lists(A)
 
     # agent self-binding correction
     for bt in A.signature.bond_types:
@@ -237,27 +326,22 @@ def make_bond(A, B, A_port, B_port):
         if st1 != st2:
             a1, s1 = st1.split('.')
             a2, s2 = st2.split('.')
-            if st1 == a_site_type and s2 in A.agents[a_agent]['iface']:
-                if A.agents[a_agent]['iface'][s2]['bond'] == '.':
+            if st1 == a_site_type and s2 in iface_a:
+                if iface_a[s2]['bond'] == '.':
                     A.agent_self_binding[bt] -= 1
-            if st2 == a_site_type and s1 in A.agents[a_agent]['iface']:
-                if A.agents[a_agent]['iface'][s1]['bond'] == '.':
+            if st2 == a_site_type and s1 in iface_a:
+                if iface_a[s1]['bond'] == '.':
                     A.agent_self_binding[bt] -= 1
-            if st1 == b_site_type and s2 in A.agents[b_agent]['iface']:
-                if A.agents[b_agent]['iface'][s2]['bond'] == '.':
+            if st1 == b_site_type and s2 in iface_b:
+                if iface_b[s2]['bond'] == '.':
                     A.agent_self_binding[bt] -= 1
-            if st2 == b_site_type and s1 in A.agents[b_agent]['iface']:
-                if A.agents[b_agent]['iface'][s1]['bond'] == '.':
+            if st2 == b_site_type and s1 in iface_b:
+                if iface_b[s1]['bond'] == '.':
                     A.agent_self_binding[bt] -= 1
 
     A.label_counter = int(kamol.get_identifier(next(reversed(A.agents)), delimiters=A.id_sep)[1])
     # size
     A.size = len(A.agents)
-    # get the composition
-    A.get_composition()
-    A.rarest_type = next(iter(A.composition))
-    # make the adjacency lists. This should be updated more efficiently than a de novo construction...
-    A.make_adjacency_lists()
 
     if A.nav:
         # get the type lists for matching
@@ -271,8 +355,7 @@ def make_bond(A, B, A_port, B_port):
         A.navigation[(a2, a1)] = s2
 
     if A.canon:
-        # requires adjacency list
-        A.get_local_views()
+        A.make_local_view_lists()
         A.canonical = A.canonicalize()
 
     # calculate reaction propensities

@@ -27,7 +27,7 @@ class Parameters:
     """
     Stores the system parameters.
     """
-    def __init__(self, file=None, pdict=None):
+    def __init__(self, file=None):
 
         # constants
 
@@ -76,8 +76,8 @@ class Parameters:
         # update and finalize the parameters
         if file:
             self.read_parameters(file)
-        elif pdict:
-            self.set_parameters(pdict)
+        else:
+            sys.exit("no parameter file.")
 
         # process SIGNATURE
         if not ka.system.signature_string:  # this would have come from the commandline
@@ -91,9 +91,9 @@ class Parameters:
         if self.inflow and not ka.system.canonicalize:
             sys.exit("in/out flow requires canonicalization.")
 
-        self.update_parameters()
+        self.update_reaction_parameters()
 
-    def update_parameters(self):
+    def update_reaction_parameters(self):
         """
         Apply the system (volume) scale factor to the parameters.
         """
