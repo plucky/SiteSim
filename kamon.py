@@ -11,6 +11,7 @@ import kasystem as ka
 class Monitor:
     def __init__(self):
         self.monitor_size_re = re.compile(r'\s*size\s*\[(\d*)\s*-\s*(\d*)\]')
+        self.monitor_range_re = re.compile(r'\s*\[(\d*)\s*-\s*(\d*)\]')
         self.monitor_max_size_re = re.compile(r'\s*maxsize\s*\[(\d*)\]')
 
         self.obs_period = 0.
@@ -39,7 +40,7 @@ class Monitor:
         """
 
         if ka.system.mixture_file and self.reproducible:
-            rev = ka.system.mixture_file[::-1]   # reverse a string
+            rev = ka.system.mixture_file[::-1]   # reverse string
             rev = rev[3:]  # get rid of ak.
             n = ''
             i = 0
@@ -51,7 +52,7 @@ class Monitor:
         # set up file name format for snapshots
         if self.snap_numbering == 'serial':
             # compute the field size to pad numbers for files to be numerically sorted by OS
-            if ka.system.sim_limit > 0:
+            if ka.system.sim_limit > 0 and self.snap_period > 0:
                 field_size = int(math.log10(ka.system.sim_limit / self.snap_period) + 1)
                 self.name_form = '{' + f':0{field_size}d' + '}'
 
@@ -63,6 +64,9 @@ class Monitor:
             self.observation_time = ka.system.sim.event
             self.snap_time = ka.system.sim.event
             info = f'event,'
+
+        if self.snap_period == 0:
+            self.snap_time = ka.system.sim_limit
 
         # set up molecule observables
         internal = []
@@ -78,10 +82,19 @@ class Monitor:
         # set up pattern observables
         internal = []
         for pattern in self.observable['?']:
-            m = kamol.KappaComplex(pattern, system=None, canon=False)
-            internal.append(m)
+            interval = None
+            if 'size' in pattern:
+                pat = pattern.split('size')
+                match = self.monitor_range_re.match(pat[1])
+                interval = (int(match.group(1)), int(match.group(2)))
+            m = kamol.KappaComplex(pat[0].strip(), system=None, canon=False)
+            internal.append((m, interval))
             txt = re.sub(r'\),', ')', m.kappa_expression())
-            info += f'?{txt.strip()},'
+            if interval:
+                for i in range(interval[0], interval[1] + 1):
+                    info += f'?{txt.strip()} in size {i},'
+            else:
+                info += f'?{txt.strip()},'
         self.observable['?'] = internal
 
         # set up bond type observables
@@ -93,10 +106,8 @@ class Monitor:
         self.observable['b'] = internal
 
         # site type observables
-        internal = []
         for item in self.observable['s']:
             info += f'{item},'
-        self.observable['s'] = internal
 
         # set up bond type observables for maximer
         internal = []
@@ -133,7 +144,7 @@ class Monitor:
                     else:
                         self.min_size = int(match.group(1))
                         self.max_size = int(match.group(2))
-                        for i in range(self.min_size, self.max_size+1):
+                        for i in range(self.min_size, self.max_size + 1):
                             info += f'size {i},'
 
         info = info[:-1]
@@ -159,10 +170,20 @@ class Monitor:
                 info += '0, '
 
         for item in self.observable['?']:
-            embeddings = 0
-            for m in ka.system.mixture.complexes:
-                embeddings += ka.system.sgm.number_of_all_embeddings(m, item) * m.count
-            info += f'{embeddings}, '
+            pattern = item[0]
+            embeddings = defaultdict(int)
+            if item[1]:
+                # user specified a size range stratifying the embeddings of the pattern
+                from_, to_ = item[1]
+                for m in ka.system.mixture.complexes:
+                    if from_ <= m.size <= to_:
+                        embeddings[m.size] += ka.system.sgm.number_of_all_embeddings(m, pattern) * m.count
+                for i in range(from_, to_ + 1):
+                    info += f'{embeddings[i]}, '
+            else:
+                for m in ka.system.mixture.complexes:
+                    embeddings[0] += ka.system.sgm.number_of_all_embeddings(m, pattern) * m.count
+                info += f'{embeddings[0]}, '
 
         for item in self.observable['b']:
             info += f'{ka.system.mixture.total_bond_type[item]}, '
@@ -183,7 +204,7 @@ class Monitor:
         for item in self.observable['p']:
             if 'size' in item:  # size distribution
                 if 'maxsize' in item:
-                    # determine max size count
+                    # determine the largest 'max_size_ranks' sizes
                     i = 1
                     for m in sorted_complexes:
                         info += f'{m.size}, '
@@ -204,15 +225,20 @@ class Monitor:
 
         self.observation_time += self.obs_period
 
-    def snapshot(self):
+    def snapshot(self, flag=''):
         """
         Make a snapshot of the mixture.
         """
         # assemble filename
-        if self.name_form:
-            snap_fn = self.snap_root_name + self.name_form.format(self.snap_counter) + '.ka'
+        if not flag:
+            if self.name_form:
+                snap_fn = self.snap_root_name + self.name_form.format(self.snap_counter) + '.ka'
+            else:
+                snap_fn = self.snap_root_name + f'{self.snap_counter}' + '.ka'
+        elif flag == 'first':
+            snap_fn = self.snap_root_name + "_start.ka"
         else:
-            snap_fn = self.snap_root_name + f'{self.snap_counter}' + '.ka'
+            snap_fn = self.snap_root_name + "_end.ka"
 
         ka.system.mixture.make_snapshot(snap_fn)
         self.snap_counter += 1
