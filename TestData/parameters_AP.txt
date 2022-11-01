@@ -15,19 +15,19 @@
 //%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test2/snap1.ka
 
 //%par: sim_limit = 3 time                  // {time, event}
-%par: sim_limit = 0.03 time                 // {time, event}
+%par: sim_limit = 0.01 time                 // {time, event}
 %par: obs_frequency = 0.001                 // observation period
 %par: snap_frequency = 0.01                 // snapshot period
 
 //%obs: ! A(s[1]), B(s[2]), S(a[1] b[2])    // a molecule
 //%obs: ! S(a[.] b[.])                      // a molecule
 //%obs: ? S(a[#] b[#])                      // a molecule
-//%obs: p maxsize [3]                         // n largest sizes
+//%obs: p maxsize [3]                       // n largest sizes
 %obs: b A.l-A.r                             // a bond type
 %obs: b A.p-P.a1                            // a bond type
 %obs: b A.p-P.a2                            // a bond type
 %obs: b A.p-P.a3                            // a bond type
-//%obs: b P.d-P.d                             // a bond type
+//%obs: b P.d-P.d                           // a bond type
 //%obs: s A.l                               // a free site type
 //%obs: p size [1-20]                       // size distribution in range [min-max]
 //%obs: ? S(a[.] b[_])                      // a pattern

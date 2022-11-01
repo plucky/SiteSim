@@ -10,7 +10,8 @@ import time
 
 def main_loop():
 
-    system = kainit.initialize(parameter_file='TestData/parameters_AP.txt')
+    system = kainit.initialize(parameter_file='TestData/parameters_poly.txt')
+    # system = kainit.initialize()
     simulator = system.sim
     monitor = system.monitor
     
@@ -21,7 +22,7 @@ def main_loop():
     system.report()
     system.monitor.initialize()
     system.monitor.observe()
-    system.monitor.snapshot()
+    system.monitor.snapshot(flag='first')
 
     # The core loop is slightly different for time-based vs event-based observations.
     # In the time-based case, the observation is a non-reactive event, whereas in the
@@ -59,7 +60,7 @@ def main_loop():
             simulator.select_reaction()
             simulator.execute_reaction()
 
-    monitor.snapshot()
+    monitor.snapshot(flag='last')
     system.report()
 
     print("\nDone!")

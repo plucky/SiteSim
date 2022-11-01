@@ -207,7 +207,9 @@ def test_overall():
     for i in range(0, 10001):
         if (i % 1000) == 0:
             print(f'\nevent {i+1}')
-            print(len(ka.system.mixture.complexes), len(ka.system.mixture.canonical), len(ka.system.mixture.local_views))
+            print(len(ka.system.mixture.complexes),
+                  len(ka.system.mixture.canonical),
+                  len(ka.system.mixture.local_views))
             # print(system.sim.report())
             # check_heap()
             # check_free_sites()

@@ -4,27 +4,22 @@
 
 %par: Volume = fibro                    // system volume
 
-//%par: inflow = 1.e-11   S	            // M s^-1
+//%par: inflow = 1.e-11   S	        // M s^-1
 
 %par: RingClosureFactor = 1.e5
-%par: Resize = 1.                       // "rescale" the system volume
+%par: Resize = 1.                       	// "rescale" the system volume
 
-%par: seed = 4711
+%par: seed = 1876
 
-%par: sim_limit = 1 time                  //  {time, event}
+%par: sim_limit = 2 time               //  {time, event}
 %par: obs_frequency = 5.e-4
 
-//%obs: ! A(s[1]), B(s[2]), S(a[1] b[2])  // a molecule
-//%obs: ! S(a[.] b[.])                    // a molecule
-//%obs: ? S(a[#] b[#])                    // a molecule
-//%obs: b A.l-A.r                           // a bond type
-//%obs: s A.l                               // a free site type
-%obs: p size [1-20]
-//%obs: ? S(a[.] b[_])                    // a pattern
-//%obs: ? S(a[.] b[1]), B(s[1])           // a pattern
+%obs: b A.l-A.r								// total number of bonds
+%obs: s A.l                              		// total number of molecules
+%obs: p size [1-20]						// total molecules in size class
+%obs: ? A(r[.]) size [1-20]             // linear molecules in size classes
 
 %rep: report_fn = TestOutput/report.txt
 %rep: output_fn = TestOutput/output.csv
 %rep: snap_root = TestOutput/snap
-%rep: numbering = serial                // {serial, event}
-
+%rep: numbering = serial               // {serial, event}
