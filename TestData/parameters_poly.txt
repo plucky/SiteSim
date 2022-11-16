@@ -2,24 +2,41 @@
 
 %sig: A@50(l[r.A$1], r[l.A])
 
-%par: Volume = fibro                    // system volume
+%par: ReferenceVolume = fibro               // Volume reference
+%par: ReferenceTemp = 37                    // Temperature reference
+
+%par: Volume = fibro                        // system volume
+%par: Temperature = 37                      // temperature in Celsius
 
 //%par: inflow = 1.e-11   S	        // M s^-1
 
 %par: RingClosureFactor = 1.e5
-%par: Resize = 1.                       	// "rescale" the system volume
+
+%par: ResizeVolume = 1.                     // rescale the system volume
+%par: RescaleTemp = 1.                      // rescale the system temperature
 
 %par: seed = 1876
 
 %par: sim_limit = 2 time               //  {time, event}
 %par: obs_frequency = 5.e-4
 
+// observable types
+// --> %obs: ! <Kappa expression>            # of instances of fully specified molecule, given in Kappa syntax
+// --> %obs: ? <Kappa pattern>               # of instances of all molecules matching a pattern
+// --> %obs: ? A(r[.]) size [min-max]        # of instances of pattern in size classes [min-max]
+// --> %obs: b <bond type>                   total # of instance of a given bond type...
+// --> %obs: mb <bond type>                  total # of instance of a given bond type in maximer...
+// --> %obs: s <site-type>                   # of instances of a free site type...
+// --> %obs: ms <site-type>                  # of instances of a free site type in maximer...
+// --> %obs: p size [min-max]                report the size distribution in the size range [min-max]
+// --> %obs: p maxsize [n]                   # of particles of each of the n largest molecules
+
 %obs: b A.l-A.r								// total number of bonds
 %obs: s A.l                              		// total number of molecules
 %obs: p size [1-20]						// total molecules in size class
 %obs: ? A(r[.]) size [1-20]             // linear molecules in size classes
 
-%rep: report_fn = TestOutput/report.txt
-%rep: output_fn = TestOutput/output.csv
-%rep: snap_root = TestOutput/snap
+%rep: report_fn = report.txt
+%rep: output_fn = output.csv
+%rep: snap_root = snap
 %rep: numbering = serial               // {serial, event}

@@ -10,6 +10,7 @@ import sys
 
 import kasystem as ka
 import kasig
+import math
 
 
 def is_number(s):
@@ -31,9 +32,16 @@ class Parameters:
 
         # constants
 
-        # self.Avogadro = constants.Avogadro  # temporarily avoid scipy for Pythonista's sake...
         self.Avogadro = 6.02214e+23
-        self.Volume_choices = {'fibro': 2.25e-12, 'yeast': 4.2e-14}
+        self.GasConstant_SI = 8.31446261815324  #  J K^{-1} mol^{-1}
+        self.GasConstant_cal = 1.98720425864083  #  cal K^{-1} mol^{-1} (1 J = 0.2390057361 cal, 1 cal = 4.184 J)
+        self.Volume_choices = {'fibro': 2.25e-12, 'yeast': 4.2e-14}  # L
+
+        self.referenceVol = self.Volume_choices['fibro']
+        self.Volume = self.referenceVol
+        self.Temperature_C = 37.0  # C
+        self.referenceTemp = 273.15 + 37.0  # K
+        self.Temperature = self.referenceTemp
         self.init_default = 100   # default initial agent concentration in nM
 
         # default parameters------------------------------------------------------
@@ -44,9 +52,10 @@ class Parameters:
 
         self.k_on = 1.e+9  # (M s)^-1; diffusion-controlled limit
 
-        self.Volume = self.Volume_choices['fibro']
         self.RingClosureFactor = 1.e+5  # ratio of binary Kd to unary Kd
-        self.Resize = 1.
+
+        self.ResizeVolume = 1.
+        self.RescaleTemperature = 1.
 
         # in/out rates -----------------------------------------------------------
 
@@ -91,14 +100,32 @@ class Parameters:
         if self.inflow and not ka.system.canonicalize:
             sys.exit("in/out flow requires canonicalization.")
 
-        self.update_reaction_parameters()
+        self.update_parameters()
 
-    def update_reaction_parameters(self):
+    def update_parameters(self):
         """
-        Apply the system (volume) scale factor to the parameters.
+        Apply the system volume and temperature scale factor to the parameters.
         """
-        self.Volume = self.Volume * self.Resize
-        self.RingClosureFactor = self.RingClosureFactor * self.Resize
+        # T is read in C
+        self.Temperature = 273.15 + self.Temperature_C
+
+        if self.Volume != self.referenceVol:
+            if self.ResizeVolume != 1.:
+                print(f'Warning: Volume resize factor != 1 and volume setting != reference')
+                print(f'Warning: Using volume setting and adjusting scale factor')
+            self.ResizeVolume = self.Volume / self.referenceVol
+
+        if self.Temperature != self.referenceTemp:
+            if self.RescaleTemperature != 1.:
+                print(f'Warning: Temperature rescale factor != 1 and temperature setting != reference')
+                print(f'Warning: Using temperature setting and adjusting scale factor')
+            self.RescaleTemperature = self.Temperature / self.referenceTemp
+
+        self.Volume = self.Volume * self.ResizeVolume
+        self.Temperature = self.Temperature * self.RescaleTemperature
+
+        # this assumes an ideal monoatomic gas...
+        self.RingClosureFactor = self.RingClosureFactor * self.ResizeVolume * math.pow(self.RescaleTemperature, 3./2.)
 
         # stochastic rate constants-----------------------------------------------
 
@@ -108,9 +135,9 @@ class Parameters:
         self.s_ring_on = self.RingClosureFactor * self.s_on
 
         # off-constants are the same regardless of whether they lead to a fission
-        self.s_off_weak = self.k_on * self.Kd_weak
-        self.s_off_medium = self.k_on * self.Kd_medium
-        self.s_off_strong = self.k_on * self.Kd_strong
+        self.s_off_weak = self.k_on * math.pow(self.Kd_weak, 1. / self.RescaleTemperature)
+        self.s_off_medium = self.k_on * math.pow(self.Kd_medium, 1. / self.RescaleTemperature)
+        self.s_off_strong = self.k_on * math.pow(self.Kd_strong, 1. / self.RescaleTemperature)
 
         # better mnemonic, stored at 'system'
         ka.system.rc_bond_formation_inter = self.s_on
@@ -129,7 +156,9 @@ class Parameters:
         ka.system.rc_bond_dissociation = {}
         for bt in ka.system.signature.bond_types:
             if is_number(ka.system.signature.bond_types[bt]):
-                ka.system.rc_bond_dissociation[bt] = self.k_on * float(ka.system.signature.bond_types[bt]) * 1.e-9
+                Kd = float(ka.system.signature.bond_types[bt]) * 1.e-9  # at reference temperature
+                Kd = math.pow(Kd, 1. / self.RescaleTemperature)
+                ka.system.rc_bond_dissociation[bt] = self.k_on * Kd
             else:
                 if ka.system.signature.bond_types[bt] == 'w':  # weak affinity
                     ka.system.rc_bond_dissociation[bt] = self.s_off_weak
@@ -189,6 +218,18 @@ class Parameters:
                                             self.Volume = float(value)
                                         else:
                                             sys.exit(f'No such volume choice: {value}')
+                                elif name == 'Temperature':  # in C
+                                    self.Temperature_C = float(value)
+                                elif name == 'ReferenceVolume':
+                                    if value in self.Volume_choices:
+                                        self.referenceVol = self.Volume_choices[value]
+                                    else:
+                                        if is_number(value):
+                                            self.referenceVol = float(value)
+                                        else:
+                                            sys.exit(f'No such volume choice: {value}')
+                                elif name == 'ReferenceTemp':  # in C
+                                    self.referenceTemp = float(value) + 273.15
                                 elif name == 'Kd_weak':
                                     self.Kd_weak = float(value)
                                 elif name == 'Kd_medium':
@@ -197,8 +238,10 @@ class Parameters:
                                     self.Kd_strong = float(value)
                                 elif name == 'k_on':
                                     self.k_on = float(value)
-                                elif name == 'Resize':
-                                    self.Resize = float(value)
+                                elif name == 'ResizeVolume':
+                                    self.ResizeVolume = float(value)
+                                elif name == 'RescaleTemp':
+                                    self.RescaleTemperature = float(value)
                                 elif name == 'RingClosureFactor':
                                     self.RingClosureFactor = float(value)
                                 elif name == 'initial_mixture':
@@ -260,7 +303,11 @@ class Parameters:
         #
         # info += '\n'
 
-        info += f'{"Avogadro":>{pp_width}}: {self.Avogadro:{form}}\n'
+        info += f'{"reference Vol":>{pp_width}}: {self.referenceVol:{form}}\n'
+        info += f'{"reference Temp":>{pp_width}}: {self.referenceTemp:{form}}\n'
+        info += f'{"Volume (resized)":>{pp_width}}: {self.Volume:{form}}\n'
+        info += f'{"Temperature (rescaled)":>{pp_width}}: {self.Temperature:{form}}\n'
+
         info += f'{"Kd weak":>{pp_width}}: {self.Kd_weak}\n'
         info += f'{"Kd medium":>{pp_width}}: {self.Kd_medium}\n'
         info += f'{"Kd strong":>{pp_width}}: {self.Kd_strong}\n'
@@ -268,8 +315,8 @@ class Parameters:
 
         info += '\n'
 
-        info += f'{"Resize":>{pp_width}}: {self.Resize}\n'
-        info += f'{"Volume (resized)":>{pp_width}}: {self.Volume:{form}}\n'
+        info += f'{"ResizeVolume":>{pp_width}}: {self.ResizeVolume}\n'
+        info += f'{"RescaleTemperature":>{pp_width}}: {self.RescaleTemperature}\n'
         info += f'{"RingClosureFactor (resized)":>{pp_width}}: {self.RingClosureFactor:{form}}\n'
 
         # stochastic rate constants-----------------------------------------------

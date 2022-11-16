@@ -1,4 +1,4 @@
-# Walter Fontana at 10/11/22
+# Walter Fontana, 2022
 
 import math
 import re
@@ -9,6 +9,43 @@ import kasystem as ka
 
 
 class Monitor:
+    """
+    --> %obs: ! <Kappa expression>              // # of instances of fully specified molecule, given in Kappa syntax
+
+        examples
+        %obs: ! A(s[1]), B(s[2]), S(a[1] b[2])  // a molecule
+        %obs: ! S(a[.] b[.])                    // another molecule
+
+    --> %obs: ? <Kappa pattern>                 // # of instances of all molecules matching a pattern
+    --> %obs: ? A(r[.]) size [min-max]]         // # of instances of pattern in size classes [min-max]
+
+        examples
+        %obs: ? S(a[#] b[#])                    // a molecular pattern ('#' means "don't care")
+        %obs: ? S(a[.] b[_])                    // a pattern ('_' means 'bound')
+        %obs: ? S(a[.] b[1]), B(s[1])           // a pattern is relative to a signature ('don't care, don't mention')
+        %obs: ? A(r[.]) size [1-20]             // pattern occurrence in size classes
+
+    --> %obs: b <bond type>                     // total # of instance of a given bond type...
+    --> %obs: mb <bond type>                    // total # of instance of a given bond type in maximer...
+                                                // ...with bond type: <atom-type>.<site-name> - <atom-type>.<site-name>
+        examples
+        %obs: b A.l-A.r                         // a bond type
+        %obs: b P.d-P.d                         // a bond type
+        %obs: mb A.p-P.a1                       // a bond type in the current maximer
+
+    --> %obs: s <site-type>                     // # of instances of a free site type...
+    --> %obs: ms <site-type>                    // # of instances of a free site type in maximer...
+                                                // ... with free site type: <atom-type>.<site-name>
+        examples
+        %obs: s A.l                             // a free site type
+        %obs: ms P.d                            // a free site type in the current maximer
+
+    --> %obs: p size [min-max]]                 // report the size distribution in the size range [min-max]
+    --> %obs: p maxsize [n]                     // # of particles of each of the n largest molecules
+
+        example
+        %obs: p size [1-20]                     // # particles of sizes 1 to 20 (reported for each size class)
+    """
     def __init__(self):
         self.monitor_size_re = re.compile(r'\s*size\s*\[(\d*)\s*-\s*(\d*)\]')
         self.monitor_range_re = re.compile(r'\s*\[(\d*)\s*-\s*(\d*)\]')
@@ -105,7 +142,7 @@ class Monitor:
             info += f'{item},'
         self.observable['b'] = internal
 
-        # site type observables
+        # set up site type observables
         for item in self.observable['s']:
             info += f'{item},'
 
@@ -114,13 +151,13 @@ class Monitor:
         for item in self.observable['mb']:
             temp = item.split('-')
             internal.append(tuple(sorted(temp)))
-            info += f'm:{item},'
+            info += f'mb {item},'
         self.observable['mb'] = internal
 
         # site type observables for maximer
         internal = []
         for item in self.observable['ms']:
-            info += f'm:{item},'
+            info += f'ms {item},'
         self.observable['ms'] = internal
 
         # size distribution observables
@@ -129,7 +166,7 @@ class Monitor:
                 if 'maxsize' in item:
                     # syntax is
                     # %obs: p maxsize [n]
-                    # where n is the number of the largest n complexes
+                    # where n denotes the largest n complexes
                     match = self.monitor_max_size_re.match(item)
                     self.max_size_ranks = int(match.group(1))
                     for i in range(1, self.max_size_ranks + 1):
