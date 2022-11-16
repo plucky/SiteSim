@@ -1,6 +1,6 @@
 #!/opt/local/bin/python
 
-# Walter Fontana at 10/5/22
+# Walter Fontana, 2022
 
 import kasystem as ka
 import kainit
@@ -10,8 +10,8 @@ import time
 
 def main_loop():
 
-    system = kainit.initialize(parameter_file='TestData/parameters_poly.txt')
-    # system = kainit.initialize()
+    # system = kainit.initialize(parameter_file='TestData/parameters_poly.txt')
+    system = kainit.initialize()
     simulator = system.sim
     monitor = system.monitor
     
