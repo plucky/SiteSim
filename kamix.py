@@ -19,12 +19,21 @@ def create_atoms(init_counts, signature=None, system=None):
     kappa = kamol.Kappa()
     complexes = []
     local_views = {}
+    start = 1
     for agent in signature.default_agent_state:
         count = init_counts[agent]
-        if count:
-            atom = kappa.parser(signature.default_agent_state[agent])
-            kappa_atom = kamol.KappaMolecule(atom, count=count, system=system, sig=signature, s_views=local_views)
-            complexes.append(kappa_atom)
+        if ka.system.barcode:
+            for i in range(start, start + count):
+                # add a barcode
+                atom = kappa.parser(f'x{i}:' + signature.default_agent_state[agent])
+                kappa_atom = kamol.KappaMolecule(atom, count=1, system=system, sig=signature, s_views=local_views)
+                complexes.append(kappa_atom)
+            start = start + count
+        else:
+            if count:
+                atom = kappa.parser(signature.default_agent_state[agent])
+                kappa_atom = kamol.KappaMolecule(atom, count=count, system=system, sig=signature, s_views=local_views)
+                complexes.append(kappa_atom)
     return 0, None, None, 0., complexes, local_views
 
 
@@ -331,13 +340,13 @@ class Mixture(snap.SnapShot):
     def update_mixture(self, new):
         # add the reaction product 'm' to the mixture
         found = False
-        if self.sys.canonicalize:
-            if new.canonical in self.canonical:
-                m = self.canonical[new.canonical]
-                self.change_count(m, 1)
-                found = True
-        else:
-            if self.sys.consolidate:
+        if self.sys.consolidate:
+            if self.sys.canonicalize:
+                if new.canonical in self.canonical:
+                    m = self.canonical[new.canonical]
+                    self.change_count(m, 1)
+                    found = True
+            else:
                 # check if the new molecule belongs to an already existing species
                 for m in self.complexes:
                     if m.size == m.size:
@@ -351,37 +360,6 @@ class Mixture(snap.SnapShot):
             new.count = 1
             # append; multiple instances of the same species are not consolidated if consolidate=False
             self.add_molecular_species(new)
-
-    def consolidate_mixture(self):
-        """
-        Determines equality between complexes and consolidates.
-        """
-        to_delete = []
-        n_complexes = len(self.complexes)
-        for i in range(0, n_complexes):
-            m1 = self.complexes[i]
-            for j in range(i+1, n_complexes):
-                m2 = self.complexes[j]
-                if m2.count == 0:
-                    continue
-                if m1.size == m2.size:
-                    if m1.sum_formula == m2.sum_formula:
-                        exists = False
-                        if self.sys.canonicalize:
-                            if m1.canonical == m2.canonical:
-                                # the molecular species exists
-                                exists = True
-                        else:
-                            if self.sys.sim.SGM.isomorphic(m1, m2):
-                                # the molecular species exists
-                                exists = True
-                        if exists:
-                            m1.count += m2.count
-                            m2.count = 0
-                            to_delete.append(m2)
-
-        for m in to_delete:
-            self.remove_molecular_species(m)
 
     def make_snapshot(self, file, label=False, pretty=False, sort=False):
         """

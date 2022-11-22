@@ -25,6 +25,7 @@ class System:
         self.db_level = 0
         self.consolidate = True
         self.canonicalize = True
+        self.barcode = False
 
         self.kappa = None           # Kappa parser
         self.sgm = None             # Site Graph Matcher
@@ -72,11 +73,16 @@ class System:
 
             sim_info = str(self.sim)
 
-            report.write(f'\n\n{"date and time (UTC)":>30}: {self.date}\n')
-            report.write(f'{"uuid":>30}: {self.uuid}\n\n')
-            info = f"\n{'COMMAND LINE '.ljust(70, '-')}\n\n"
-            report.write(f'{info}{self.cmdline}\n')
+            sys_info = f'\n\n{"date and time (UTC)":>30}: {self.date}\n'
+            sys_info += f'{"uuid":>30}: {self.uuid}\n\n'
+            sys_info += f"\n{'COMMAND LINE '.ljust(70, '-')}\n\n"
+            sys_info += f'{self.cmdline}\n'
+            sys_info += f"\n{'SYSTEM SETTINGS '.ljust(70, '-')}\n\n"
+            sys_info += f'{"consolidate":>20}: {self.consolidate}\n'
+            sys_info += f'{"canonicalize":>20}: {self.canonicalize}\n'
+            sys_info += f'{"barcode":>20}: {self.barcode}\n\n'
 
+            report.write(sys_info)
             report.write(sig_info)
             report.write(param_info)
             report.write(sim_info)

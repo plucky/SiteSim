@@ -10,8 +10,8 @@ import time
 
 def main_loop():
 
-    # system = kainit.initialize(parameter_file='TestData/parameters_poly.txt')
-    system = kainit.initialize()
+    system = kainit.initialize(parameter_file='TestData/parameters_new.txt')
+    # system = kainit.initialize()
     simulator = system.sim
     monitor = system.monitor
     

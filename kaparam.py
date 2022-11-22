@@ -106,19 +106,25 @@ class Parameters:
         """
         Apply the system volume and temperature scale factor to the parameters.
         """
+        # sanity
+        if ka.system.barcode:  # if we barcode, there's no point in consolidating
+            ka.system.consolidate = False
+        if not ka.system.consolidate:  # if we don't consolidate, we might as well not canonicalize
+            ka.system.canonicalize = False
+
         # T is read in C
         self.Temperature = 273.15 + self.Temperature_C
 
         if self.Volume != self.referenceVol:
             if self.ResizeVolume != 1.:
                 print(f'Warning: Volume resize factor != 1 and volume setting != reference')
-                print(f'Warning: Using volume setting and adjusting scale factor')
+                print(f'Warning: Using volume setting and adjusting scale factor relative to default reference')
             self.ResizeVolume = self.Volume / self.referenceVol
 
         if self.Temperature != self.referenceTemp:
             if self.RescaleTemperature != 1.:
                 print(f'Warning: Temperature rescale factor != 1 and temperature setting != reference')
-                print(f'Warning: Using temperature setting and adjusting scale factor')
+                print(f'Warning: Using temperature setting and adjusting scale factor relative to default reference')
             self.RescaleTemperature = self.Temperature / self.referenceTemp
 
         self.Volume = self.Volume * self.ResizeVolume
@@ -251,6 +257,21 @@ class Parameters:
                                         ka.system.monitor.reproducible = True
                                     else:
                                         ka.system.monitor.reproducible = False
+                                elif name == 'canonicalize':
+                                    if "True" in value or 'true' in value:
+                                        ka.system.canonicalize = True
+                                    else:
+                                        ka.system.canonicalize = False
+                                elif name == 'consolidate':
+                                    if "True" in value or 'true' in value:
+                                        ka.system.consolidate = True
+                                    else:
+                                        ka.system.consolidate = False
+                                elif name == 'barcode':
+                                    if "True" in value or 'true' in value:
+                                        ka.system.barcode = True
+                                    else:
+                                        ka.system.barcode = False
                                 elif name == 'sim_limit':
                                     match = re.match(r'%par:\s*sim_limit\s*=\s*(\S*)\s*(\S*)\s*', line)
                                     ka.system.sim_limit = float(match.group(1))

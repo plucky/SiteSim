@@ -125,9 +125,10 @@ def dissociate_bond(A, port1, port2):
     iface = A.agents[b_agent]['iface']
     A.adjacency[b_agent] = [iface[s1]['bond'].split(A.bond_sep)[0] for s1 in iface if iface[s1]['bond'] != '.']
 
-    # adjust the local views after bond loss
-    A.agents[a_agent]['local_view'] = local_view(a_agent, A.agents)
-    A.agents[b_agent]['local_view'] = local_view(b_agent, A.agents)
+    if ka.system.canonicalize:
+        # adjust the local views after bond loss
+        A.agents[a_agent]['local_view'] = local_view(a_agent, A.agents)
+        A.agents[b_agent]['local_view'] = local_view(b_agent, A.agents)
 
     # check for connectedness
     # dfs seems a tad bit faster than bfs when graphs are lightly connected;
@@ -281,9 +282,10 @@ def make_bond(A, B, A_port, B_port):
     # update adjacency
     A.adjacency[a_agent] = [iface_a[s1]['bond'].split(A.bond_sep)[0] for s1 in iface_a if iface_a[s1]['bond'] != '.']
     A.adjacency[b_agent] = [iface_b[s1]['bond'].split(A.bond_sep)[0] for s1 in iface_b if iface_b[s1]['bond'] != '.']
-    # adjust the local views after bond loss
-    A.agents[a_agent]['local_view'] = local_view(a_agent, A.agents)
-    A.agents[b_agent]['local_view'] = local_view(b_agent, A.agents)
+    if ka.system.canonicalize:
+        # adjust the local views after bond loss
+        A.agents[a_agent]['local_view'] = local_view(a_agent, A.agents)
+        A.agents[b_agent]['local_view'] = local_view(b_agent, A.agents)
     # standardize the bond
     b = sorted([A_port, B_port], key=lambda x: (alphanum_key(x[0]), alphanum_key(x[1])))
     b = tuple(b)
