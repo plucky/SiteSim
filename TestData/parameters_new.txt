@@ -15,7 +15,7 @@
 %par: ResizeVolume = 0.1                    // rescale the system volume
 %par: RescaleTemp = 1.                      // rescale the system temperature
 
-%par: seed = 39012                          // rng seed
+%par: seed = 39012                          // rng seed; if None, seed is automatically generated
 
 %par: canonicalize = True                   // canonicalize graphs
 %par: consolidate = True                    // consolidate mixture by gathering isomorphic graphs
@@ -26,8 +26,8 @@
 
 //%par: sim_limit = 3 time                  // {time, event}
 %par: sim_limit = 0.001 time                // {time, event}
-%par: obs_frequency = 0.0001                 // observation period
-%par: snap_frequency = 0.0001                 // snapshot period
+%par: obs_frequency = 0.0001                // observation period
+%par: snap_frequency = 0.0001               // snapshot period
 
 // observable types
 // --> %obs: ! <Kappa expression>            # of instances of fully specified molecule, given in Kappa syntax
@@ -44,6 +44,11 @@
 %obs: b A.p-P.a1                            // a bond type
 %obs: b A.p-P.a2                            // a bond type
 %obs: b A.p-P.a3                            // a bond type
+
+// stopping conditions
+// --> %stp: size_watermark > num            # size watermark
+
+%stp: size_watermark > 3                    // a stopping condition
 
 %rep: report_fn = TestOutput/report.txt
 %rep: output_fn = TestOutput/output.csv
