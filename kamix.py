@@ -64,7 +64,7 @@ class Mixture(snap.SnapShot):
         self.index = {}
         # note: self.local_views is declared in snap.Snapshot.
 
-        if not file:
+        if not file:   # else file is read in kasnap.py by super-class SnapShot
             value = create_atoms(ka.system.parameters.init_agents, signature=system.signature, system=system)
             self.event, self.origin_uuid, self.rg_state, self.time, self.complexes, self.local_views = value
             self.origin_uuid = ka.system.uuid
@@ -269,7 +269,7 @@ class Mixture(snap.SnapShot):
 
         # save the index of the molecule to be deleted; we need it below to update the heap.
         remove = self.index[m]
-        # move the last molecular species to the location of the one being deleted.
+        # move the last molecular species to the location of the species being deleted.
         m_last = self.complexes[-1]
         self.complexes[remove] = m_last
         # update the index of the species we moved.
@@ -360,6 +360,9 @@ class Mixture(snap.SnapShot):
             new.count = 1
             # append; multiple instances of the same species are not consolidated if consolidate=False
             self.add_molecular_species(new)
+            # high watermark update
+            if new.size > ka.system.alarm.watermark.level:
+                ka.system.alarm.watermark.level = new.size
 
     def make_snapshot(self, file, label=False, pretty=False, sort=False):
         """
@@ -453,7 +456,6 @@ class Mixture(snap.SnapShot):
         for a in self.sys.outflow_rate:
             s = f'atom type {a}'
             info += f'{s:>{pp_width}}: {self.activity_outflow[a]:{form}}\n'
-        info += '\n'
 
         reactivity = False
         show_bonds = False
