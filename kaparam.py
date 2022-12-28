@@ -38,11 +38,12 @@ class Parameters:
         self.Volume_choices = {'fibro': 2.25e-12, 'yeast': 4.2e-14}  # L
 
         self.referenceVol = self.Volume_choices['fibro']
-        self.Volume = self.referenceVol
-        self.Temperature_C = 37.0  # C
         self.referenceTemp = 273.15 + 37.0  # K
-        self.Temperature = self.referenceTemp
-        self.init_default = 100   # default initial agent concentration in nM
+        self.referenceTemp_C = 37.0  # C
+
+        self.Volume = self.referenceVol
+        self.Temperature = self.referenceTemp  # K
+        self.default_concentration = 100   # default initial agent concentration in nM
 
         # default parameters------------------------------------------------------
 
@@ -76,7 +77,7 @@ class Parameters:
 
         # random number generator seed -------------------------------------------
 
-        self.rng_seed = 4711  # Eau de Cologne
+        self.rng_seed = None
 
         # signature string -------------------------------------------------------
 
@@ -100,9 +101,7 @@ class Parameters:
         if self.inflow and not ka.system.canonicalize:
             sys.exit("in/out flow requires canonicalization.")
 
-        self.update_parameters()
-
-    def update_parameters(self):
+    def apply_parameters(self):
         """
         Apply the system volume and temperature scale factor to the parameters.
         """
@@ -112,25 +111,21 @@ class Parameters:
         if not ka.system.consolidate:  # if we don't consolidate, we might as well not canonicalize
             ka.system.canonicalize = False
 
-        # T is read in C
-        self.Temperature = 273.15 + self.Temperature_C
-
-        if self.Volume != self.referenceVol:
-            if self.ResizeVolume != 1.:
-                print(f'Warning: Volume resize factor != 1 and volume setting != reference')
-                print(f'Warning: Using volume setting and adjusting scale factor relative to default reference')
+        if self.Volume != self.referenceVol:  # the inputted volume has precedence
+            print(f'Warning: Using volume setting and adjusting scale factor relative to default reference')
+            # self.Volume = self.Volume
             self.ResizeVolume = self.Volume / self.referenceVol
+        else:
+            self.Volume = self.referenceVol * self.ResizeVolume
 
-        if self.Temperature != self.referenceTemp:
-            if self.RescaleTemperature != 1.:
-                print(f'Warning: Temperature rescale factor != 1 and temperature setting != reference')
-                print(f'Warning: Using temperature setting and adjusting scale factor relative to default reference')
+        if self.Temperature != self.referenceTemp:  # the inputted temperature has precedence
+            print(f'Warning: Using temperature setting and adjusting scale factor relative to default reference')
+            # self.Temperature = self.Temperature
             self.RescaleTemperature = self.Temperature / self.referenceTemp
+        else:
+            self.Temperature = self.referenceTemp * self.RescaleTemperature
 
-        self.Volume = self.Volume * self.ResizeVolume
-        self.Temperature = self.Temperature * self.RescaleTemperature
-
-        # this assumes an ideal monoatomic gas...
+        # this assumes an ideal mono-atomic gas...
         self.RingClosureFactor = self.RingClosureFactor * self.ResizeVolume * math.pow(self.RescaleTemperature, 3./2.)
 
         # stochastic rate constants-----------------------------------------------
@@ -180,8 +175,8 @@ class Parameters:
         # initial agent counts
         for a in ka.system.signature.init_agents:
             init = ka.system.signature.init_agents[a]
-            if init == '*':  # default abundance 100 nM
-                self.init_agents[a] = int(self.init_default * 1.e-9 * self.Avogadro * self.Volume)
+            if init == '*':  # default abundance in nM
+                self.init_agents[a] = int(self.default_concentration * 1.e-9 * self.Avogadro * self.Volume)
             else:
                 self.init_agents[a] = int(float(init) * 1.e-9 * self.Avogadro * self.Volume)
 
@@ -225,7 +220,7 @@ class Parameters:
                                         else:
                                             sys.exit(f'No such volume choice: {value}')
                                 elif name == 'Temperature':  # in C
-                                    self.Temperature_C = float(value)
+                                    self.Temperature = float(value) + 273.15
                                 elif name == 'ReferenceVolume':
                                     if value in self.Volume_choices:
                                         self.referenceVol = self.Volume_choices[value]
@@ -281,7 +276,8 @@ class Parameters:
                                 elif name == 'snap_frequency':
                                     ka.system.monitor.snap_period = float(value)
                                 elif name == 'seed':
-                                    self.rng_seed = int(value)
+                                    if value != 'None':
+                                        self.rng_seed = int(value)
                                 elif name == 'inflow':
                                     match = re.match(r'%par:\s*inflow\s*=\s*(\S*)\s*(\S*)\s*', line)
                                     self.inflow[match.group(2)] = float(match.group(1))
@@ -338,7 +334,7 @@ class Parameters:
 
         info += f'{"ResizeVolume":>{pp_width}}: {self.ResizeVolume}\n'
         info += f'{"RescaleTemperature":>{pp_width}}: {self.RescaleTemperature}\n'
-        info += f'{"RingClosureFactor (resized)":>{pp_width}}: {self.RingClosureFactor:{form}}\n'
+        info += f'{"RingClosureFactor (adjusted)":>{pp_width}}: {self.RingClosureFactor:{form}}\n'
 
         # stochastic rate constants-----------------------------------------------
 
@@ -371,7 +367,7 @@ class Parameters:
         for a in self.init_agents:
             text = f'initial agents {a}'
             if ka.system.signature.init_agents[a] == '*':
-                molar = str(self.init_default)
+                molar = str(self.default_concentration)
             else:
                 molar = ka.system.signature.init_agents[a]
             info += f'{text:>{pp_width}}: {self.init_agents[a]} ({molar} nM)\n'
@@ -384,13 +380,3 @@ class Parameters:
 
     def __str__(self, pp_width=40):
         return self.report(pp_width=pp_width)
-
-# -----------------------------------------------------------------
-
-
-if __name__ == '__main__':
-    import kainit
-
-    kainit.minit(signature=None, parameter_file='TestData/parameters.txt')
-    print(str(ka.system.parameters))
-
