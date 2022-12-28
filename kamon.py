@@ -23,7 +23,7 @@ class Monitor:
         %obs: ? S(a[#] b[#])                    // a molecular pattern ('#' means "don't care")
         %obs: ? S(a[.] b[_])                    // a pattern ('_' means 'bound')
         %obs: ? S(a[.] b[1]), B(s[1])           // a pattern is relative to a signature ('don't care, don't mention')
-        %obs: ? A(r[.]) size [1-20]             // pattern occurrence in size classes
+        %obs: ? A(r[.]) size [1-20]             // pattern occurrence in size classes 1 to 20
 
     --> %obs: b <bond type>                     // total # of instance of a given bond type...
     --> %obs: mb <bond type>                    // total # of instance of a given bond type in maximer...
