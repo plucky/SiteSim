@@ -7,6 +7,7 @@ import sys
 import re
 import argparse
 
+import kalarm
 import kasig
 import kasystem as ka
 import kaparam
@@ -15,6 +16,7 @@ import kamix
 import kasim
 import kamatch
 import kamon
+import kalarm
 
 
 def test_invocation():
@@ -91,16 +93,15 @@ def commandline(invocation=None):
     return arg_values, cmdline
 
 
-def initialize(parameter_file=None, invocation=None):
+def initialize(parameter_file=None, invocation=None, parameter_mod_fun=None):
     """
-    Initializes the system
-
+    Initializes the system; includes commandline invocation
     Returns: a system object
     """
     ka.init_system()  # this creates, but does not fully initialize, the global object "system"
 
-    ka.system.parameter_file = parameter_file
-    seed = -1
+    ka.system.parameter_file = parameter_file  # will be overridden by command line, if any
+    seed = -1  # flag to determine whether the command line contains a seed
 
     if len(sys.argv) > 1 or invocation is not None:
         # use command line or pass invocation
@@ -138,23 +139,34 @@ def initialize(parameter_file=None, invocation=None):
     # create monitor (needs further initializing before starting the main loop)
     ka.system.monitor = kamon.Monitor()
 
-    # initialize PARAMETERS
+    # initialize Kappa PARSER
+    ka.system.kappa = kamol.Kappa()
+
+    # initialize site-graph MATCHER
+    ka.system.sgm = kamatch.SiteGraphMatcher()
+
+    # initialize PARAMETERS. This also initializes the SIGNATURE object.
     ka.system.parameters = kaparam.Parameters(file=ka.system.parameter_file)
+
+    # change parameters using an external function
+    if parameter_mod_fun:
+        parameter_mod_fun(ka.system)
+
+    # apply settings and compute rate constants
+    ka.system.parameters.apply_parameters()
+
     # use the rng seed provided on the commandline, if any
     if seed != -1:
         ka.system.parameters.rng_seed = seed
 
-    # initialize Kappa PARSER
-    ka.system.kappa = kamol.Kappa()
-
-    # initialize site-graph matcher
-    ka.system.sgm = kamatch.SiteGraphMatcher()
-
     # initialize MIXTURE, which also generates all activities
     ka.system.mixture = kamix.Mixture(file=ka.system.mixture_file, system=ka.system)
 
-    # initialize CTMC and finish initializing SYSTEM (dependency on CTMC)
+    # initialize CTMC
     ka.system.sim = kasim.CTMC()
+
+    # initialize ALARMS
+    ka.system.alarm = kalarm.Alarm()
 
     # initial REPORT
     ka.system.report()
@@ -164,24 +176,51 @@ def initialize(parameter_file=None, invocation=None):
     return ka.system
 
 
-def minit(signature=None, parameter_file=None):
+def init(parameter_file=None, parameter_mod_fun=None):
     """
-    Initializes a minimal system.
+    Initializes a system without commandline and allows for parameter modifications.
+    This is useful for scripting in jupyter.
     Returns: a system object
     """
-
-    if not signature and not parameter_file:
-        sys.exit("No signature or parameter file given.")
-
     ka.init_system()  # this creates, but does not fully initialize, the global object "system"
-    # store the COMMAND LINE
-    ka.system.cmdline = 'minit invocation'
-    ka.system.signature_string = signature
-    ka.system.parameters = kaparam.Parameters(parameter_file)
-    ka.system.parameters.rng_seed = 42
+    ka.system.parameter_file = parameter_file
+    # create monitor (needs further initializing before starting the main loop)
+    ka.system.monitor = kamon.Monitor()
+    # initialize Kappa PARSER
     ka.system.kappa = kamol.Kappa()
+    # initialize site-graph MATCHER
+    ka.system.sgm = kamatch.SiteGraphMatcher()
+    # initialize PARAMETERS. This also initializes the SIGNATURE object.
+    ka.system.parameters = kaparam.Parameters(file=ka.system.parameter_file)
+    # initialize MIXTURE, which also generates all activities
+
+    # change parameters using an external function
+    if parameter_mod_fun:
+        parameter_mod_fun(ka.system)
+
+    ka.system.parameters.apply_parameters()
+
+    ka.system.mixture = kamix.Mixture(file=ka.system.mixture_file, system=ka.system)
+    # initialize CTMC
+    ka.system.sim = kasim.CTMC()
+    # initialize ALARMS
+    ka.system.alarm = kalarm.Alarm()
+    # initial REPORT
+    ka.system.report()
 
     return ka.system
+
+
+def clear_SiteSim():
+    del ka.system.kappa
+    del ka.system.sgm
+    del ka.system.signature
+    del ka.system.parameters
+    del ka.system.mixture
+    del ka.system.sim
+    del ka.system.monitor
+    del ka.system.alarm
+    del ka.system
 
 
 if __name__ == '__main__':
