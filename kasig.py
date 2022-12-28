@@ -283,7 +283,7 @@ class KappaSignature:
             if first:
                 info += f' {b}\n'
             else:
-                info += f'{" ":>{pp_width}} {b}\n'
+                info += f'{" ":>{pp_width}}  {b}\n'
             first = False
         info += '\n'
         return info
