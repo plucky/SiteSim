@@ -262,7 +262,7 @@ class CTMC:
             #     for k in self.heap[t]:
             #         info += f"HEAP {self.heap[t][k].id} -> root value: {self.heap[t][k].tree[0]:1.2E}\n"
 
-            info += f'{"random number generator state":>{pp_width}}\n'
+            info += f'{"random number generator state":>{pp_width}}:\n'
             info += json.dumps(self.rng.bit_generator.state, sort_keys=False, indent=4)
             info += '\n'
         return info
