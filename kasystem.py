@@ -3,9 +3,13 @@
 This module defines the 'System' object.
 'System' holds overall state variables and pointers to data structures of the system.
 """
-import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
+import time
+import psutil
 import uuid
 import sys
+import kainit
 
 system = None
 
@@ -16,7 +20,8 @@ class System:
         Initializes the 'System' object, which holds overall state variables and
         pointers to data structures.
         """
-        self.date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
+        self.date_utc = datetime.now(timezone.utc)
+        self.date_eastern = self.date_utc.astimezone(tz=ZoneInfo("America/New_York"))
         self.uuid = uuid.uuid1()
 
         self.cmdline = None
@@ -33,7 +38,8 @@ class System:
         self.parameters = None      # system parameters
         self.mixture = None         # mixture of kappa expressions
         self.sim = None             # ctmc simulator
-        self.monitor = None         # observable monitor
+        self.monitor = None         # monitor of observables
+        self.alarm = None           # stopping conditions
 
         self.sim_limit_type = 'time'  # {time, event}
         self.sim_limit = 0.
@@ -73,7 +79,8 @@ class System:
 
             sim_info = str(self.sim)
 
-            sys_info = f'\n\n{"date and time (UTC)":>30}: {self.date}\n'
+            sys_info = f'\n\n{"initialized (UTC)":>30}: {self.date_utc.strftime("%Y-%m-%d %H:%M:%S")}\n'
+            sys_info += f'{"initialized (Boston)":>30}: {self.date_eastern.strftime("%Y-%m-%d %H:%M:%S")}\n'
             sys_info += f'{"uuid":>30}: {self.uuid}\n\n'
             sys_info += f"\n{'COMMAND LINE '.ljust(70, '-')}\n\n"
             sys_info += f'{self.cmdline}\n'
@@ -88,6 +95,21 @@ class System:
             report.write(sim_info)
             report.write(mix_info)
 
+    def resources_report(self):
+        end_utc = datetime.now(timezone.utc)
+        end_eastern = end_utc.astimezone(tz=ZoneInfo("America/New_York"))
+        with open(self.report_file, "a") as report:
+            sys_info = f"\n{'RESOURCES '.ljust(70, '-')}\n\n"
+            sys_info += f'{"uuid":>30}: {self.uuid}\n'
+            sys_info += f'{"terminated (UTC)":>30}: {end_utc.strftime("%Y-%m-%d %H:%M:%S")}\n'
+            sys_info += f'{"terminated (Boston)":>30}: {end_eastern.strftime("%Y-%m-%d %H:%M:%S")}\n'
+            sys_info += f'{"real time since initializing":>30}: {end_eastern - self.date_eastern}\n'
+            sys_info += f'{"events":>30}: {self.sim.event}\n'
+            sys_info += f'{"cpu":>30}: {time.process_time():.3f} seconds\n'
+            process = psutil.Process()
+            sys_info += f'{"memory rss":>30}: {process.memory_info().rss / (1024 * 1024):.3f} Mb\n'
+            sys_info += f'{"memory vms":>30}: {process.memory_info().vms / (1024 * 1024):.3f} Mb\n'
+            report.write(sys_info)
 
 def init_system():
     global system
