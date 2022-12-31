@@ -24,10 +24,9 @@
 
 //%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test2/snap1.ka
 
-//%par: sim_limit = 3 time                  // {time, event}
-%par: sim_limit = 0.002 time                // {time, event}
-%par: obs_frequency = 0.0001                // observation period
-%par: snap_frequency = 0.0001               // snapshot period
+%par: sim_limit = 20 time                   // time or event
+%par: obs_frequency = 0.01                  // observation period
+%par: snap_frequency = 0.1               // snapshot period
 
 %par: memory = 10                           // number of observations kept per observable
 
@@ -59,7 +58,7 @@
 // --> %stp: size_watermark > num            # size watermark  OBSOLETE
 
 //%stp: "AAP" > 20
-%stp: "top size"[1] > 10        // stops when the largest size has surpassed 10
+//%stp: "top size"[1] > 10        // stops when the largest size has surpassed 10
 
 %rep: report_fn = TestOutput/report.txt
 %rep: output_fn = TestOutput/output.csv
