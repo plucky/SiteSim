@@ -188,8 +188,7 @@ class Parameters:
         Returns: nothing
 
         Current declaration keywords:
-            %par
-            %sig
+            %par, %sig, %rep, (%obs declarations are read in kamon.py)
         Current keywords:
             'Volume', 'Kd_weak', 'Kd_medium', 'Kd_strong', 'k_on', 'Resize', 'RingClosureFactor',
             'seed', 'inflow', 'outflow', 'sim_limit', 'obs_frequency', 'report_fn', 'snap_root',
@@ -204,7 +203,7 @@ class Parameters:
                     if not line:
                         break
                     # parse the line
-                    match = re.match(r'^%(par:|sig:|obs:|rep:)\s?', line)
+                    match = re.match(r'^%(par:|sig:|rep:)\s?', line)
                     if match:
                         if match.group(1) == 'par:':
                             match = re.match(r'%par:\s*(.*)\s*=\s*(\S*)\s?', line)
@@ -278,6 +277,8 @@ class Parameters:
                                 elif name == 'seed':
                                     if value != 'None':
                                         self.rng_seed = int(value)
+                                elif name == "memory":
+                                    ka.system.monitor.memory = int(value)
                                 elif name == 'inflow':
                                     match = re.match(r'%par:\s*inflow\s*=\s*(\S*)\s*(\S*)\s*', line)
                                     self.inflow[match.group(2)] = float(match.group(1))
@@ -290,9 +291,6 @@ class Parameters:
                             match = re.match(r'%sig: ([^/]*)/?', line)
                             if match:
                                 self.signature_string = match.group(1).strip()
-                        elif match.group(1) == 'obs:':
-                            match = re.match(r'%obs: \s*(\S*)\s*([^/]*)/?', line)
-                            ka.system.monitor.observable[match.group(1)] += [match.group(2).strip()]
                         elif match.group(1) == 'rep:':
                             match = re.match(r'%rep:\s*(.*)\s*=\s*(\S*)\s?', line)
                             if match:
