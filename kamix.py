@@ -360,9 +360,11 @@ class Mixture(snap.SnapShot):
             new.count = 1
             # append; multiple instances of the same species are not consolidated if consolidate=False
             self.add_molecular_species(new)
-            # high watermark update
-            if new.size > ka.system.alarm.watermark.level:
-                ka.system.alarm.watermark.level = new.size
+            # # high watermark update
+            # alarm = ka.system.alarm.alarm
+            # if 'size_watermark' in alarm:
+            #     if new.size > alarm['size_watermark'].level:
+            #         alarm['size_watermark'].level = new.size
 
     def make_snapshot(self, file, label=False, pretty=False, sort=False):
         """
