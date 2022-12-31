@@ -29,28 +29,39 @@
 %par: obs_frequency = 0.0001                // observation period
 %par: snap_frequency = 0.0001               // snapshot period
 
-// observable types
-// --> %obs: ! <Kappa expression>            # of instances of fully specified molecule, given in Kappa syntax
-// --> %obs: ? <Kappa pattern>               # of instances of all molecules matching a pattern
-// --> %obs: ? <Kappa pattern> size [1-20]   # of instances of pattern in size classes [min-max]
-// --> %obs: b <bond type>                   total # of instance of a given bond type...
-// --> %obs: mb <bond type>                  total # of instance of a given bond type in maximer...
-// --> %obs: s <site-type>                   # of instances of a free site type...
-// --> %obs: ms <site-type>                  # of instances of a free site type in maximer...
-// --> %obs: p size [1-20]                   report the size distribution in the size range [min-max]
-// --> %obs: p maxsize [n]                   # of particles of each of the n largest molecules
+%par: memory = 10                           // number of observations kept per observable
 
-%obs: b A.l-A.r                             // a bond type
-%obs: b A.p-P.a1                            // a bond type
-%obs: b A.p-P.a2                            // a bond type
-%obs: b A.p-P.a3                            // a bond type
+// observable types ("name" is optional)
+//
+// --> %obs: ["name"] ! <Kappa expression>               # of instances of fully specified molecule
+// --> %obs: ["name"] ? <Kappa pattern>                  # of instances of all molecules matching a pattern
+// --> %obs: ["name"] ? <Kappa pattern> size [min-max]   # of instances of pattern in size classes [min-max]
+// --> %obs: ["name"] b <bond type>                      total # of instance of a given bond type
+// --> %obs: ["name"] mb <bond type>                     total # of instance of a given bond type in maximer
+// --> %obs: ["name"] s <site-type>                      # of instances of a free site type
+// --> %obs: ["name"] ms <site-type>                     # of instances of a free site type in maximer
+// --> %obs: ["name"] p size [min-max]                   report the particle numbers in the size range [min-max]
+// --> %obs: ["name"] p maxsize [n]                      the size of the n largest molecules
+
+%obs: b A.l-A.r
+%obs: b A.p-P.a1
+%obs: b A.p-P.a2
+%obs: b A.p-P.a3
+%obs: "AP" ! A(l[.] p[1] r[.]), P(a1[.] a2[.] a3[1] d[.])
+%obs: "AAP" ! A(l[1] p[2] r[.]), A(l[.] p[.] r[1]), P(a1[2] a2[.] a3[.] d[.])
+%obs: "top size" p maxsize [5]
 
 // stopping conditions
-// --> %stp: size_watermark > num            # size watermark
+// If an %obs has been assigned a name (as "AAP" above), it can be used as a stopping condition (see below).
+// If an %obs has a range, then invoking name[x] with x being a point in the range, can also be
+// used as a stopping condition (see below).
 
-%stp: size_watermark > 3                    // a stopping condition
+// --> %stp: size_watermark > num            # size watermark  (not used)
+
+%stp: "AAP" > 20
+%stp: "top size"[1] > 10                     // stops when the largest size has surpassed 10
 
 %rep: report_fn = TestOutput/report.txt
 %rep: output_fn = TestOutput/output.csv
 %rep: snap_root = TestOutput/snap
-%rep: numbering = serial                    // {serial, event}
+%rep: numbering = serial                     // serial or event

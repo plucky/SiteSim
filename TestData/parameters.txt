@@ -1,38 +1,67 @@
+// AP aggregation equilibrium
 
-%sig: A(p[a1.P$m a2.P$m a3.P$m], l[r.A$w], r[l.A]), P(a1[p.A], a2[p.A], a3[p.A], d[d.P$m])
+%sig: A@100(p[a1.P$m a2.P$m a3.P$m], l[r.A$w], r[l.A]), P@100(a1[p.A], a2[p.A], a3[p.A], d[d.P$m])
 
-// %sig: A@100(p[a1.P$1000.e-9 a2.P$m a3.P$m], l[r.A$w], r[l.A]), P(a1[p.A], a2[p.A], a3[p.A], d[d.P$m])
+%par: ReferenceVolume = fibro               // Volume reference
+%par: ReferenceTemp = 37                    // Temperature reference
 
-%par: Volume = fibro              // system volume
+%par: Volume = fibro                        // system volume
+%par: Temperature = 37                      // temperature in Celsius
 
-// {weak, medium, strong} refers to binding strength
+//%par: inflow = 1.e-11   S	                // M s^-1
 
-// calibrate your mind:
+%par: RingClosureFactor = 1.e5              // at the reference state
+
+%par: ResizeVolume = 0.1                    // rescale the system volume
+%par: RescaleTemp = 1.                      // rescale the system temperature
+
+%par: seed = 2187                           // rng seed; if None, seed is automatically generated
+
+%par: canonicalize = True                   // canonicalize graphs
+%par: consolidate = True                    // consolidate mixture by gathering isomorphic graphs
+%par: barcode = False                       // barcode each atom (turns consolidate and canonicalize off)
+%par: reproducible = True                   // add header info to snapshots to enable exact reproducibility
+
+//%par: initial_mixture = /Users/wf7/Desktop/-CombiFluids/SiteSim/Test2/snap1.ka
+
+//%par: sim_limit = 3 time                  // {time, event}
+%par: sim_limit = 0.002 time                // {time, event}
+%par: obs_frequency = 0.0001                // observation period
+%par: snap_frequency = 0.0001               // snapshot period
+
+%par: memory = 10                           // number of observations kept per observable
+
+// observable types ("name" is optional)
 //
-// at 100nM of A and 100nM B:
-// weak -> fraction of AB dimers: ~8 %
-// medium -> fraction of AB dimers: ~38 %
-// strong -> fraction of AB dimers: ~72 %
-//
-// (at 10^11 affinity [ring closure], the fraction of dimers is 99%
-//
-// at 10nM of A and 10nM B:
-// weak -> fraction of AB dimers: ~1 %
-// medium -> fraction of AB dimers: ~8 %
-// strong -> fraction of AB dimers: ~38 %
+// --> %obs: ["name"] ! <Kappa expression>               # of instances of fully specified molecule
+// --> %obs: ["name"] ? <Kappa pattern>                  # of instances of all molecules matching a pattern
+// --> %obs: ["name"] ? <Kappa pattern> size [min-max]   # of instances of pattern in size classes [min-max]
+// --> %obs: ["name"] b <bond type>                      total # of instance of a given bond type
+// --> %obs: ["name"] mb <bond type>                     total # of instance of a given bond type in maximer
+// --> %obs: ["name"] s <site-type>                      # of instances of a free site type
+// --> %obs: ["name"] ms <site-type>                     # of instances of a free site type in maximer
+// --> %obs: ["name"] p size [min-max]                   report the particle numbers in the size range [min-max]
+// --> %obs: ["name"] p maxsize [n]                      the size of the n largest molecules
 
-// all rate constants are 'deterministic' (conversion is done by SiteSim)
+%obs: b A.l-A.r
+%obs: b A.p-P.a1
+%obs: b A.p-P.a2
+%obs: b A.p-P.a3
+%obs: "AP" ! A(l[.] p[1] r[.]), P(a1[.] a2[.] a3[1] d[.])
+%obs: "AAP" ! A(l[1] p[2] r[.]), A(l[.] p[.] r[1]), P(a1[2] a2[.] a3[.] d[.])
+%obs: "top size" p maxsize [5]
 
-%par: Kd_weak   = 1000.e-9        //   1 μmol
-%par: Kd_medium =  100.e-9        // 100 nmol
-%par: Kd_strong =   10.e-9        //  10 nmol
+// stopping conditions
+// If an %obs has been assigned a name (as "AAP" above), it can be used as a stopping condition (see below).
+// If an %obs has a range, then invoking name[x] with x being a point in the range, can also be
+// used as a stopping condition (see below).
 
-%par: k_on = 1.e+9                // (M s)^-1; diffusion-controlled limit...
+// --> %stp: size_watermark > num            # size watermark  OBSOLETE
 
-// %par: inflow = 1.e-11     A	      // M s^-1
-// %par: outflow = 1.e-4     A       // s^-1   [in * 1/steady-state (in M) ]
+//%stp: "AAP" > 20
+%stp: "top size"[1] > 10        // stops when the largest size has surpassed 10
 
-%par: Resize = 1                  // "rescale" the system volume (and everything that depends on it)
-%par: RingClosureFactor = 1.e+5   // ratio of binary Kd to unary Kd
-
-//%par: seed = 1234
+%rep: report_fn = TestOutput/report.txt
+%rep: output_fn = TestOutput/output.csv
+%rep: snap_root = TestOutput/snap
+%rep: numbering = serial                    // serial or event
