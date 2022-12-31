@@ -61,6 +61,8 @@ def SiteSim_loop(parameter_file='TestData/parameters.txt', modifier_fun=None):
                 if system.alarm.trigger():
                     # a stopping condition was triggered
                     break
+                # interim report
+                system.report()
                 # an observation (or snapshot or intervention) at a specified time is a "null reaction"
                 skip = True
             if simulator.time >= monitor.snap_time:
@@ -88,7 +90,7 @@ def SiteSim_loop(parameter_file='TestData/parameters.txt', modifier_fun=None):
     # ====================================================================================================
 
     monitor.snapshot(flag='last')
-    # gather final reports
+    # final reports
     system.report()
     system.resources_report()
     # clear objects
