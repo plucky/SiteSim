@@ -20,7 +20,7 @@ def in_notebook():
     return True
 
 
-def SiteSim_loop(parameter_file='TestData/parameters_AP.txt', modifier_fun=None):
+def SiteSim_loop(parameter_file='TestData/parameters.txt', modifier_fun=None):
 
     if in_notebook():
         # avoids sys.argv (command line parsing)
@@ -37,7 +37,7 @@ def SiteSim_loop(parameter_file='TestData/parameters_AP.txt', modifier_fun=None)
     # system.sim.event = 0
 
     system.report()
-    system.monitor.initialize()
+    # system.monitor.initialize(file=parameter_file)
     system.monitor.observe()
     system.monitor.snapshot(flag='first')
 
@@ -57,8 +57,11 @@ def SiteSim_loop(parameter_file='TestData/parameters_AP.txt', modifier_fun=None)
             if simulator.time >= monitor.observation_time:
                 simulator.time = monitor.observation_time
                 monitor.observe()
-                # an observation (or snapshot or intervention) at a specified time
-                # is a "null reaction"
+                # check for stopping conditions
+                if system.alarm.trigger():
+                    # a stopping condition was triggered
+                    break
+                # an observation (or snapshot or intervention) at a specified time is a "null reaction"
                 skip = True
             if simulator.time >= monitor.snap_time:
                 simulator.time = monitor.snap_time
@@ -71,10 +74,6 @@ def SiteSim_loop(parameter_file='TestData/parameters_AP.txt', modifier_fun=None)
                 simulator.event += 1
                 simulator.select_reaction()
                 simulator.execute_reaction()
-                # check for stopping conditions
-                if system.alarm.check():
-                    # a stopping condition was triggered
-                    break
     else:
         while simulator.event < system.sim_limit:
             simulator.advance_time()
