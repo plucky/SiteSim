@@ -165,6 +165,9 @@ def initialize(parameter_file=None, invocation=None, parameter_mod_fun=None):
     # initialize CTMC
     ka.system.sim = kasim.CTMC()
 
+    # initialize MONITOR
+    ka.system.monitor.initialize(file=parameter_file)
+
     # initialize ALARMS
     ka.system.alarm = kalarm.Alarm()
 
@@ -203,6 +206,8 @@ def init(parameter_file=None, parameter_mod_fun=None):
     ka.system.mixture = kamix.Mixture(file=ka.system.mixture_file, system=ka.system)
     # initialize CTMC
     ka.system.sim = kasim.CTMC()
+    # initialize MONITOR
+    ka.system.monitor.initialize(file=parameter_file)
     # initialize ALARMS
     ka.system.alarm = kalarm.Alarm()
     # initial REPORT
