@@ -38,8 +38,8 @@ class Parameters:
         self.Volume_choices = {'fibro': 2.25e-12, 'yeast': 4.2e-14}  # L
 
         self.referenceVol = self.Volume_choices['fibro']
-        self.referenceTemp = 273.15 + 37.0  # K
-        self.referenceTemp_C = 37.0  # C
+        self.referenceTemp = 273.15 + 25.0  # K
+        self.referenceTemp_C = 25.0  # C  (IUPAC "room temperature")
 
         self.Volume = self.referenceVol
         self.Temperature = self.referenceTemp  # K
@@ -112,14 +112,14 @@ class Parameters:
             ka.system.canonicalize = False
 
         if self.Volume != self.referenceVol:  # the inputted volume has precedence
-            print(f'Warning: Using volume setting and adjusting scale factor relative to default reference')
+            print(f'Using volume setting and adjusting scale factor relative to default reference')
             # self.Volume = self.Volume
             self.ResizeVolume = self.Volume / self.referenceVol
         else:
             self.Volume = self.referenceVol * self.ResizeVolume
 
         if self.Temperature != self.referenceTemp:  # the inputted temperature has precedence
-            print(f'Warning: Using temperature setting and adjusting scale factor relative to default reference')
+            print(f'Using temperature setting and adjusting scale factor relative to default reference')
             # self.Temperature = self.Temperature
             self.RescaleTemperature = self.Temperature / self.referenceTemp
         else:
@@ -318,10 +318,10 @@ class Parameters:
         #
         # info += '\n'
 
-        info += f'{"reference Vol":>{pp_width}}: {self.referenceVol:{form}}\n'
-        info += f'{"reference Temp":>{pp_width}}: {self.referenceTemp:{form}}\n'
-        info += f'{"Volume (resized)":>{pp_width}}: {self.Volume:{form}}\n'
-        info += f'{"Temperature (rescaled)":>{pp_width}}: {self.Temperature:{form}}\n'
+        info += f'{"reference Vol":>{pp_width}}: {self.referenceVol:{form}} L\n'
+        info += f'{"reference Temp":>{pp_width}}: {self.referenceTemp:{form}} K\n'
+        info += f'{"Volume":>{pp_width}}: {self.Volume:{form}} L\n'
+        info += f'{"Temperature":>{pp_width}}: {self.Temperature:{form}} K ({self.Temperature - 273.15:.3f} ºC)\n'
 
         info += f'{"Kd weak":>{pp_width}}: {self.Kd_weak}\n'
         info += f'{"Kd medium":>{pp_width}}: {self.Kd_medium}\n'
