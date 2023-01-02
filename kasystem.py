@@ -22,7 +22,7 @@ class System:
         """
         self.start_utc = datetime.now(timezone.utc)
         self.start_eastern = self.start_utc.astimezone(tz=ZoneInfo("America/New_York"))
-        self.uuid = uuid.uuid1()
+        self.uuid = str(uuid.uuid1()).split('-')[0]
 
         self.cmdline = None
 
