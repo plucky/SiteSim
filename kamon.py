@@ -299,8 +299,8 @@ class Monitor:
             for name in self.observable[obs_type]:
                 self.observable_by_name[name] = {obs_type: self.observable[obs_type][name]}
                 for item in self.observable[obs_type][name]['label']:
-                    info += f'{item}, '
-        info = info[:-2]
+                    info += f'{item},'
+        info = info[:-1]
         # initialize file with column labels
         with open(self.obs_file_name, "w") as fp:
             fp.write(info + '\n')
