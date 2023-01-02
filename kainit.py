@@ -7,8 +7,6 @@ import sys
 import re
 import argparse
 
-import kalarm
-import kasig
 import kasystem as ka
 import kaparam
 import kamol
@@ -93,7 +91,7 @@ def commandline(invocation=None):
     return arg_values, cmdline
 
 
-def initialize(parameter_file=None, invocation=None, parameter_mod_fun=None):
+def initialize(parameter_file=None, invocation=None, modifier_fun=None, **kwargs):
     """
     Initializes the system; includes commandline invocation
     Returns: a system object
@@ -149,8 +147,8 @@ def initialize(parameter_file=None, invocation=None, parameter_mod_fun=None):
     ka.system.parameters = kaparam.Parameters(file=ka.system.parameter_file)
 
     # change parameters using an external function
-    if parameter_mod_fun:
-        parameter_mod_fun(ka.system)
+    if modifier_fun:
+        modifier_fun(ka.system, **kwargs)
 
     # apply settings and compute rate constants
     ka.system.parameters.apply_parameters()
@@ -179,7 +177,7 @@ def initialize(parameter_file=None, invocation=None, parameter_mod_fun=None):
     return ka.system
 
 
-def init(parameter_file=None, parameter_mod_fun=None):
+def init(parameter_file=None, modifier_fun=None, **kwargs):
     """
     Initializes a system without commandline and allows for parameter modifications.
     This is useful for scripting in jupyter.
@@ -198,9 +196,10 @@ def init(parameter_file=None, parameter_mod_fun=None):
     # initialize MIXTURE, which also generates all activities
 
     # change parameters using an external function
-    if parameter_mod_fun:
-        parameter_mod_fun(ka.system)
+    if modifier_fun:
+        modifier_fun(ka.system, **kwargs)
 
+    # apply settings and compute rate constants
     ka.system.parameters.apply_parameters()
 
     ka.system.mixture = kamix.Mixture(file=ka.system.mixture_file, system=ka.system)
