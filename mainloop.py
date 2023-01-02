@@ -59,7 +59,7 @@ def modify_parameters(system, **kwargs):
                 print(f'"ResizeVolume" updated to {system.parameters.ResizeVolume}')
             # initial agent counts
             case 'initial_agent_counts':
-                for agent_type, count in value:
+                for agent_type, count in value.items():
                     system.signature.init_agents[agent_type] = count
                     print(f'Initial agent count for {agent_type} updated to {count}')
 
@@ -149,12 +149,12 @@ def pd_loop(parameter_file='TestData/parameters_AP.txt'):
     Simulation loop with modification of parameters
     """
     # modify below as appropriate
-    for i in range(1, 3):
-        temp = 25 + i * 5
+    for i in range(0, 11):
+        temp = 25 - i * 2
         kwargs = dict()
-        kwargs['report_fn'] = f'TestOutput/report_T{temp}.txt'
-        kwargs['output_fn'] = f'TestOutput/output_T{temp}.csv'
-        kwargs['snap_root'] = f'TestOutput/snap_T{temp}_'
+        kwargs['report_fn'] = f'report_T{temp}.txt'
+        kwargs['output_fn'] = f'output_T{temp}.csv'
+        kwargs['snap_root'] = f'snap_T{temp}_'
         kwargs['Temperature'] = float(temp)
         kwargs['ResizeVolume'] = 0.1
         # kwargs['initial_agent_counts'] = {'A': 100, 'P': 100}
