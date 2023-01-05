@@ -11,6 +11,7 @@ import sys
 import kasystem as ka
 import kasig
 import math
+from datetime import datetime
 
 
 def is_number(s):
@@ -40,6 +41,7 @@ class Parameters:
         self.referenceVol = self.Volume_choices['fibro']
         self.referenceTemp = 273.15 + 25.0  # K
         self.referenceTemp_C = 25.0  # C  (IUPAC "room temperature")
+        self.referenceRingClosureFactor = 1.e+5  # ratio of binary Kd to unary Kd
 
         self.Volume = self.referenceVol
         self.Temperature = self.referenceTemp  # K
@@ -53,7 +55,7 @@ class Parameters:
 
         self.k_on = 1.e+9  # (M s)^-1; diffusion-controlled limit
 
-        self.RingClosureFactor = 1.e+5  # ratio of binary Kd to unary Kd
+        self.RingClosureFactor = self.referenceRingClosureFactor
 
         self.ResizeVolume = 1.
         self.RescaleTemperature = 1.
@@ -112,21 +114,22 @@ class Parameters:
             ka.system.canonicalize = False
 
         if self.Volume != self.referenceVol:  # the inputted volume has precedence
-            print(f'Using volume setting and adjusting scale factor relative to default reference')
-            # self.Volume = self.Volume
             self.ResizeVolume = self.Volume / self.referenceVol
+            print(f'Using volume setting and adjusting scale factor relative to default reference')
+            print(f'volume: {self.Volume}, volume scale factor: {self.ResizeVolume}')
         else:
             self.Volume = self.referenceVol * self.ResizeVolume
 
         if self.Temperature != self.referenceTemp:  # the inputted temperature has precedence
-            print(f'Using temperature setting and adjusting scale factor relative to default reference')
-            # self.Temperature = self.Temperature
             self.RescaleTemperature = self.Temperature / self.referenceTemp
+            print(f'Using temperature setting and adjusting scale factor relative to default reference')
+            print(f'temperature: {self.Temperature}, temperature scale factor: {self.RescaleTemperature}')
         else:
             self.Temperature = self.referenceTemp * self.RescaleTemperature
 
         # this assumes an ideal mono-atomic gas...
-        self.RingClosureFactor = self.RingClosureFactor * self.ResizeVolume * math.pow(self.RescaleTemperature, 3./2.)
+        rescaleRCF = self.ResizeVolume * math.pow(self.RescaleTemperature, 3./2.)
+        self.RingClosureFactor = self.referenceRingClosureFactor * rescaleRCF
 
         # stochastic rate constants-----------------------------------------------
 
@@ -242,8 +245,8 @@ class Parameters:
                                     self.ResizeVolume = float(value)
                                 elif name == 'RescaleTemp':
                                     self.RescaleTemperature = float(value)
-                                elif name == 'RingClosureFactor':
-                                    self.RingClosureFactor = float(value)
+                                elif name == 'referenceRingClosureFactor':
+                                    self.referenceRingClosureFactor = float(value)
                                 elif name == 'initial_mixture':
                                     ka.system.mixture_file = value.strip()
                                 elif name == 'reproducible':
@@ -286,7 +289,7 @@ class Parameters:
                                     match = re.match(r'%par:\s*outflow\s*=\s*(\S*)\s*(\S*)\s*', line)
                                     self.outflow[match.group(2)] = float(match.group(1))
                                 else:
-                                    sys.exit(f"unknown parameter file keyword in {line}")
+                                    sys.exit(f"unknown parameter keyword in file {par_file}.\n{line}\n")
                         elif match.group(1) == 'sig:':
                             match = re.match(r'%sig: ([^/]*)/?', line)
                             if match:
@@ -312,16 +315,18 @@ class Parameters:
         form = '1.5E'
         info = f"\n{'PARAMETERS '.ljust(70, '-')}\n\n"
 
-        # now = datetime.datetime.now()
-        # info += f'{"date":>30}: {now:%Y-%m-%d %H:%M}\n'
-        # info += f'{"uuid":>30}: {self.uuid}\n'
-        #
-        # info += '\n'
+        info += f'{"time of this report":>30}: {datetime.now():%Y-%m-%d %H:%M}\n\n'
 
         info += f'{"reference Vol":>{pp_width}}: {self.referenceVol:{form}} L\n'
         info += f'{"reference Temp":>{pp_width}}: {self.referenceTemp:{form}} K\n'
+        info += f'{"reference RingClosureFactor":>{pp_width}}: {self.referenceRingClosureFactor:{form}} K\n'
+
+        info += f'{"ResizeVolume":>{pp_width}}: {self.ResizeVolume}\n'
+        info += f'{"RescaleTemperature":>{pp_width}}: {self.RescaleTemperature}\n'
+
         info += f'{"Volume":>{pp_width}}: {self.Volume:{form}} L\n'
         info += f'{"Temperature":>{pp_width}}: {self.Temperature:{form}} K ({self.Temperature - 273.15:.3f} ºC)\n'
+        info += f'{"RingClosureFactor":>{pp_width}}: {self.RingClosureFactor:{form}}\n'
 
         info += f'{"Kd weak":>{pp_width}}: {self.Kd_weak}\n'
         info += f'{"Kd medium":>{pp_width}}: {self.Kd_medium}\n'
@@ -329,10 +334,6 @@ class Parameters:
         info += f'{"k_on":>{pp_width}}: {self.k_on:{form}}\n'
 
         info += '\n'
-
-        info += f'{"ResizeVolume":>{pp_width}}: {self.ResizeVolume}\n'
-        info += f'{"RescaleTemperature":>{pp_width}}: {self.RescaleTemperature}\n'
-        info += f'{"RingClosureFactor (adjusted)":>{pp_width}}: {self.RingClosureFactor:{form}}\n'
 
         # stochastic rate constants-----------------------------------------------
 
