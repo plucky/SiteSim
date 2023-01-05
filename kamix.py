@@ -427,8 +427,10 @@ class Mixture(snap.SnapShot):
         size_dist = self.get_size_distribution()
         d1 = f'{size_dist[:4]}'
         d2 = f'{size_dist[-4:]}'
-        info += f'{d1[1:-1]} ... {d2[1:-1]}'
-        info += '\n\n'
+        info += f'{d1[1:-1]}\n'
+        info += f'{" ":>20}   ... \n'
+        info += f'{" ":>20}  {d2[1:-1]}\n'
+        info += '\n'
 
         form = '1.5E'
         info += f'{"system activities ":>{pp_width}}\n'
