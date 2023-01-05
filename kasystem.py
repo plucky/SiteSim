@@ -9,7 +9,6 @@ import time
 import psutil
 import uuid
 import sys
-import kainit
 
 system = None
 
@@ -41,8 +40,11 @@ class System:
         self.monitor = None         # monitor of observables
         self.alarm = None           # stopping conditions
 
+        self.xargs = None           # special ops command line arguments
+
         self.sim_limit_type = 'time'  # {time, event}
         self.sim_limit = 0.
+        self.rng_seed = None
 
         self.report_file = None
         self.parameter_file = None
