@@ -10,12 +10,12 @@
 
 //%par: inflow = 1.e-11   S	                // M s^-1
 
-%par: RingClosureFactor = 1.e5              // at the reference state
+%par: referenceRingClosureFactor = 1.e5     // at the reference state
 
 %par: ResizeVolume = 0.1                    // rescale the system volume
 %par: RescaleTemp = 1.                      // rescale the system temperature
 
-%par: seed = None                           // rng seed; if None, seed is automatically generated
+%par: seed = 8711                           // rng seed; if None, seed is automatically generated
 
 %par: canonicalize = True                   // canonicalize graphs
 %par: consolidate = True                    // consolidate mixture by gathering isomorphic graphs

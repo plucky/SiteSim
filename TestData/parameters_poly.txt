@@ -10,7 +10,7 @@
 
 //%par: inflow = 1.e-11   S	        // M s^-1
 
-%par: RingClosureFactor = 1.e5
+%par: referenceRingClosureFactor = 1.e5     // at the reference state
 
 %par: ResizeVolume = 1.                     // rescale the system volume
 %par: RescaleTemp = 1.                      // rescale the system temperature
