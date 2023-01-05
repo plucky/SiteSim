@@ -1,3 +1,0 @@
-subclass KappaMolecule for SiteSim?
-integer arithmetic of rates until the last moment?
-do we need to update the local views after remap() in kamol?
