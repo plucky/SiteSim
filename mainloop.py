@@ -3,7 +3,7 @@
 # Walter Fontana, 2022
 
 import kainit
-
+import datetime
 
 def in_notebook():
     """
@@ -20,51 +20,19 @@ def in_notebook():
     return True
 
 
-def initialize(parameter_file=None, modifier_fun=None, **kwargs):
+def initialize(parameter_file=None, invocation= None, modifier_fun=None, **kwargs):
     """
     Wrapper for initialization
     """
-    if in_notebook():
-        # avoids sys.argv (command line parsing)
-        system = kainit.init(parameter_file=parameter_file, modifier_fun=modifier_fun, **kwargs)
-    else:
-        # note that parameter_file may be overridden by command line argument
-        system = kainit.initialize(parameter_file=parameter_file, modifier_fun=modifier_fun, **kwargs)
+    if not in_notebook():
+        kainit.commandline(invocation=invocation)
+    # note that parameter_file may be overridden by the command line argument
+    system = kainit.initialize(parameter_file=parameter_file, modifier_fun=modifier_fun, **kwargs)
 
     return system
 
 
-def modify_parameters(system, **kwargs):
-    for key, value in kwargs.items():
-        match key:
-            # file names
-            case 'report_fn':
-                system.report_file = value
-                print(f'"report_file" updated to {system.report_file}')
-            case 'output_fn':
-                system.monitor.obs_file_name = value
-                print(f'"csv_datafile" updated to {system.monitor.obs_file_name}')
-            case 'snap_root':
-                system.monitor.snap_root_name = value
-                print(f'"snap_root" updated to {system.monitor.snap_root_name}')
-            # physical parameters
-            case 'RescaleTemperature':
-                system.parameters.RescaleTemperature = value
-                print(f'"RescaleTemperature" updated to {system.parameters.RescaleTemperature}')
-            case 'Temperature':  # in C
-                system.parameters.Temperature = float(value) + 273.15  # in K
-                print(f'"Temperature" updated to {value} ºC ({system.parameters.Temperature} K)')
-            case 'ResizeVolume':
-                system.parameters.ResizeVolume = value
-                print(f'"ResizeVolume" updated to {system.parameters.ResizeVolume}')
-            # initial agent counts
-            case 'initial_agent_counts':
-                for agent_type, count in value.items():
-                    system.signature.init_agents[agent_type] = count
-                    print(f'Initial agent count for {agent_type} updated to {count}')
-
-
-def main_loop(system=None):
+def loop(system=None):
     """
     Main simulator loop
     """
@@ -80,7 +48,8 @@ def main_loop(system=None):
     system.monitor.observe()
     system.monitor.snapshot(flag='first')
 
-    print(f'\nSimulation <{system.uuid}> started')
+    local_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f'\nSimulation <{system.uuid}> started at {local_time}')
 
     # ====================================================================================================
     # The core loop is slightly different for time-based vs event-based observations.
@@ -131,40 +100,19 @@ def main_loop(system=None):
     system.report()
     system.resources_report()
 
-    print(f'Simulation <{system.uuid}> terminated\n')
+    local_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    print(f'Simulation <{system.uuid}> terminated at {local_time}\n')
 
 
 def SiteSim_loop(parameter_file='TestData/parameters_AP.txt'):
     """
     Plain simulation loop
     """
-    system = initialize(parameter_file=parameter_file)
-    main_loop(system=system)
+    system = initialize(parameter_file=parameter_file, invocation=None)
+    loop(system=system)
     # clear objects
     kainit.clear_SiteSim()
 
 
-def pd_loop(parameter_file='TestData/parameters_AP.txt'):
-    """
-    Simulation loop with modification of parameters
-    """
-    # modify below as appropriate
-    for i in range(0, 11):
-        temp = 25 - i * 2
-        kwargs = dict()
-        kwargs['report_fn'] = f'report_T{temp}.txt'
-        kwargs['output_fn'] = f'output_T{temp}.csv'
-        kwargs['snap_root'] = f'snap_T{temp}_'
-        kwargs['Temperature'] = float(temp)
-        kwargs['ResizeVolume'] = 0.1
-        # kwargs['initial_agent_counts'] = {'A': 100, 'P': 100}
-
-        system = initialize(parameter_file=parameter_file, modifier_fun=modify_parameters, **kwargs)
-        main_loop(system=system)
-        # clear objects
-        kainit.clear_SiteSim()
-
-
 if __name__ == '__main__':
-    # SiteSim_loop()
-    pd_loop()
+    SiteSim_loop()
