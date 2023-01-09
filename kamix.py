@@ -245,17 +245,18 @@ class Mixture(snap.SnapShot):
         self.total_activity += self.bond_dissociation_activity
         self.total_activity += self.bimolecular_binding_activity
 
-        self.total_inflow = 0.
-        self.total_outflow = 0.
-        for a in self.sys.inflow_rate:
-            # inflows are zero-molecular
-            self.total_inflow += self.activity_inflow[a]
-        for a in self.sys.outflow_rate:
-            # outflows are unimolecular
-            self.total_outflow += self.activity_outflow[a]
+        if self.sys.inflow_rate or self.sys.outflow_rate:
+            self.total_inflow = 0.
+            self.total_outflow = 0.
+            for a in self.sys.inflow_rate:
+                # inflows are zero-molecular
+                self.total_inflow += self.activity_inflow[a]
+            for a in self.sys.outflow_rate:
+                # outflows are unimolecular
+                self.total_outflow += self.activity_outflow[a]
 
-        self.total_activity += self.total_inflow
-        self.total_activity += self.total_outflow
+            self.total_activity += self.total_inflow
+            self.total_activity += self.total_outflow
 
     def remove_molecular_species(self, m):
         """
